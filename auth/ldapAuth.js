@@ -61,7 +61,10 @@ async function ldapAuthenticate(username, password, session) {
 
     // --- LDAP configuration ---
     const ldapUrl = "ldap://145.118.4.6"; // fixed IP
-    const userPrincipal = `${username}@ict.lab.locals`;
+    const userPrincipal = username.includes("@")
+        ? username // already has domain, don't append
+        : `${username}@ict.lab.locals`;
+
     console.log("[LDAP] Connecting to:", ldapUrl);
     console.log("[LDAP] Using userPrincipal:", userPrincipal);
 
