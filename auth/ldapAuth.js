@@ -1,7 +1,7 @@
 const ldap = require("ldapjs");
 
 /**
- * Performs an LDAP search and resolves with all found entries.
+ * Helper to perform an LDAP search and return entries.
  */
 function searchAsync(client, base, username) {
     return new Promise((resolve, reject) => {
@@ -13,52 +13,78 @@ function searchAsync(client, base, username) {
         };
 
         const entries = [];
+        console.log(`[LDAP] Searching in base: ${base} with filter: ${filter}`);
 
         client.search(base, opts, (err, res) => {
-            if (err) return reject(err);
+            if (err) {
+                console.error("[LDAP] Search error:", err.message);
+                return reject(err);
+            }
 
             res.on("searchEntry", (entry) => entries.push(entry.object));
-            res.on("error", (err) => reject(err));
-            res.on("end", () => resolve(entries));
+            res.on("error", (err) => {
+                console.error("[LDAP] Search stream error:", err.message);
+                reject(err);
+            });
+            res.on("end", (result) => {
+                console.log(`[LDAP] Search completed in ${base}, entries found: ${entries.length}`);
+                resolve(entries);
+            });
         });
     });
 }
 
 /**
- * Authenticates a user against the GLR LDAP server and updates the Express session.
+ * Authenticates a user via LDAP and updates the session.
  */
 async function ldapAuthenticate(username, password, session) {
-    // Local test accounts (bypass LDAP)
+    console.log("--------------------------------------------------");
+    console.log(`[LOGIN] Attempt for user: ${username}`);
+    console.log("[LOGIN] Starting authentication...");
+
+    // Test accounts (no LDAP)
     const testAccounts = [
         { u: "docent123", p: "docent123", type: "DOCENT", mail: "docent@glr.nl" },
-        { u: "student123", p: "student123", type: "STUDENT", mail: "student@glr.nl" },
+        { u: "student1", p: "student1", type: "STUDENT", mail: "student@glr.nl" },
+        { u: "student2", p: "student2", type: "STUDENT", mail: "student2@glr.nl" },
     ];
-
     const test = testAccounts.find((acc) => acc.u === username && acc.p === password);
     if (test) {
+        console.log("[LOGIN] Matched local test account:", test.u);
         session.login = true;
         session.ingelogdAls = test.type;
         session.mail = test.mail;
         if (test.type === "DOCENT") session.inlogDocent = username;
         if (test.type === "STUDENT") session.inlogStudent = username;
-        return { message: `${test.type} ingelogd`, session };
+        return { message: `${test.type} ingelogd (test account)`, session };
     }
 
-    // --- LDAP configuration (hard-coded IP) ---
-    const ldapUrl = "ldap://145.118.4.6"; // same as in PHP version
-    const client = ldap.createClient({ url: ldapUrl });
+    // --- LDAP configuration ---
+    const ldapUrl = "ldap://145.118.4.6"; // fixed IP
     const userPrincipal = `${username}@ict.lab.locals`;
+    console.log("[LDAP] Connecting to:", ldapUrl);
+    console.log("[LDAP] Using userPrincipal:", userPrincipal);
+
+    const client = ldap.createClient({ url: ldapUrl });
 
     try {
-        // Step 1: bind (authenticate)
+        // Step 1: Bind (authenticate)
         await new Promise((resolve, reject) =>
-            client.bind(userPrincipal, password, (err) => (err ? reject(err) : resolve()))
+            client.bind(userPrincipal, password, (err) => {
+                if (err) {
+                    console.error("[LDAP] Bind failed:", err.message);
+                    reject(err);
+                } else {
+                    console.log("[LDAP] Bind successful");
+                    resolve();
+                }
+            })
         );
-        console.log(`LDAP bind succeeded for ${username}`);
 
-        // Step 2: search for teachers
+        // Step 2: Search for teacher
         let entries = await searchAsync(client, "ou=docenten,dc=ict,dc=lab,dc=locals", username);
         if (entries.length === 1) {
+            console.log("[LDAP] User found in OU=docenten");
             session.login = true;
             session.ingelogdAls = "DOCENT";
             session.inlogDocent = username;
@@ -66,9 +92,10 @@ async function ldapAuthenticate(username, password, session) {
             return { message: "Docent ingelogd", session };
         }
 
-        // Step 3: search for students
+        // Step 3: Search for student
         entries = await searchAsync(client, "ou=glr_studenten,dc=ict,dc=lab,dc=locals", username);
         if (entries.length === 1) {
+            console.log("[LDAP] User found in OU=glr_studenten");
             session.login = true;
             session.ingelogdAls = "STUDENT";
             session.inlogStudent = username;
@@ -77,24 +104,26 @@ async function ldapAuthenticate(username, password, session) {
             return { message: "Student ingelogd", session };
         }
 
-        // Step 4: no match found
+        // Step 4: No match
+        console.warn("[LDAP] Bind OK but no user found in docenten or studenten OUs");
         session.inlogError = "error";
-        console.warn(`LDAP: no matching user found for ${username}`);
         return { error: "Geen docent of student van het GLR" };
 
     } catch (err) {
-        // LDAP bind or search failure
-        console.error("LDAP authentication error:", err);
+        // LDAP bind or search failed
+        console.error("[LDAP] Error during authentication:", err);
         session.inlogError = "error";
         return { error: "LDAP binding of zoekfout", detail: err.message };
 
     } finally {
-        // Always close the LDAP connection
+        // Always close the connection
         try {
             client.unbind();
+            console.log("[LDAP] Connection closed");
         } catch (e) {
-            console.warn("Kon LDAP-verbinding niet netjes sluiten:", e.message);
+            console.warn("[LDAP] Could not close connection:", e.message);
         }
+        console.log("--------------------------------------------------\n");
     }
 }
 
