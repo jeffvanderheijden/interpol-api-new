@@ -1,6 +1,7 @@
 // server.js
 // Interpol Intro Weeks API Server
-
+const fs = require("fs");
+const path = require("path");
 const express = require('express');
 const session = require('express-session');
 const dotenv = require('dotenv');
@@ -11,6 +12,15 @@ dotenv.config({ path: __dirname + '/.env' });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Debugger
+const logStream = fs.createWriteStream(path.join(process.cwd(), "ldap-debug-node.log"), { flags: "a" });
+function nodeLog(line) {
+  const msg = `[${new Date().toISOString()}] ${line}\n`;
+  process.stdout.write(msg);
+  logStream.write(msg);
+}
+global.nodeLog = nodeLog;
 
 // ------------------------------------------------------------
 // CORS-configuratie
