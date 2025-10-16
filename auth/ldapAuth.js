@@ -113,11 +113,15 @@ async function ldapAuthenticate(username, password, session) {
         // Step 2: search in OU=docenten
         let entries = await searchAsync(client, "ou=docenten,dc=ict,dc=lab,dc=locals", username);
         if (entries.length === 1) {
-            nodeLog("[LDAP] User found in OU=docenten");
+            const entry = entries[0];
+            nodeLog(`[LDAP] User found in OU=docenten`);
+            nodeLog(`[LDAP] Entry attributes available: ${Object.keys(entry).join(", ")}`);
+
             session.login = true;
             session.ingelogdAls = "DOCENT";
             session.inlogDocent = username;
-            session.mail = entries[0].mail || "";
+            session.mail = entry.mail || entry["userPrincipalName"] || "";
+
             nodeLog("[LOGIN] DOCENT login success");
             return { message: "Docent ingelogd", session };
         }
@@ -126,11 +130,13 @@ async function ldapAuthenticate(username, password, session) {
         entries = await searchAsync(client, "ou=glr_studenten,dc=ict,dc=lab,dc=locals", username);
         if (entries.length === 1) {
             nodeLog("[LDAP] User found in OU=glr_studenten");
+            nodeLog(`[LDAP] Entry attributes available: ${Object.keys(entry).join(", ")}`);
+
             session.login = true;
             session.ingelogdAls = "STUDENT";
             session.inlogStudent = username;
-            session.mail = entries[0].mail || "";
-            session.info = entries;
+            session.mail = entry.mail || entry["userPrincipalName"] || "";
+
             nodeLog("[LOGIN] STUDENT login success");
             return { message: "Student ingelogd", session };
         }
