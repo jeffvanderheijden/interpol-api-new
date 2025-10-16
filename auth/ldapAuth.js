@@ -1,7 +1,7 @@
 const ldap = require("ldapjs");
 
 /**
- * Helper to perform an LDAP search and return entries.
+ * Helper: perform an LDAP search and return all entries.
  */
 function searchAsync(client, base, username) {
     return new Promise((resolve, reject) => {
@@ -26,8 +26,10 @@ function searchAsync(client, base, username) {
                 console.error("[LDAP] Search stream error:", err.message);
                 reject(err);
             });
-            res.on("end", (result) => {
-                console.log(`[LDAP] Search completed in ${base}, entries found: ${entries.length}`);
+            res.on("end", () => {
+                console.log(
+                    `[LDAP] Search completed in ${base}, entries found: ${entries.length}`
+                );
                 resolve(entries);
             });
         });
@@ -35,14 +37,13 @@ function searchAsync(client, base, username) {
 }
 
 /**
- * Authenticates a user via LDAP and updates the session.
+ * Authenticate a user against the GLR LDAP directory and update the Express session.
  */
 async function ldapAuthenticate(username, password, session) {
     console.log("--------------------------------------------------");
     console.log(`[LOGIN] Attempt for user: ${username}`);
-    console.log("[LOGIN] Starting authentication...");
 
-    // Test accounts (no LDAP)
+    // Skip LDAP for local test accounts
     const testAccounts = [
         { u: "docent123", p: "docent123", type: "DOCENT", mail: "docent@glr.nl" },
         { u: "student1", p: "student1", type: "STUDENT", mail: "student@glr.nl" },
@@ -60,31 +61,44 @@ async function ldapAuthenticate(username, password, session) {
     }
 
     // --- LDAP configuration ---
-    const ldapUrl = "ldap://145.118.4.6"; // fixed IP
-    const userPrincipal = username.includes("@")
-        ? username // already has domain, don't append
-        : `${username}@ict.lab.locals`;
-
+    const ldapUrl = "ldap://145.118.4.6";
+    const userPrincipal = `${username}@ict.lab.locals`;
     console.log("[LDAP] Connecting to:", ldapUrl);
     console.log("[LDAP] Using userPrincipal:", userPrincipal);
 
-    const client = ldap.createClient({ url: ldapUrl });
+    // Create LDAP client with options similar to PHP defaults
+    const client = ldap.createClient({
+        url: ldapUrl,
+        reconnect: true,
+        timeout: 5000,
+        connectTimeout: 10000,
+        idleTimeout: 30000,
+        tlsOptions: { rejectUnauthorized: false },
+    });
+
+    // Optional: handle referrals and paged results (Active Directory friendly)
+    client.controls = [
+        new ldap.Control({
+            type: "1.2.840.113556.1.4.319", // PagedResultsControl
+            criticality: false,
+        }),
+    ];
 
     try {
-        // Step 1: Bind (authenticate)
+        // Step 1: bind (authenticate)
         await new Promise((resolve, reject) =>
             client.bind(userPrincipal, password, (err) => {
                 if (err) {
-                    console.error("[LDAP] Bind failed:", err.message);
+                    console.error("[LDAP] Bind failed:", err.name, err.message);
                     reject(err);
                 } else {
-                    console.log("[LDAP] Bind successful");
+                    console.log("[LDAP] Bind successful for:", userPrincipal);
                     resolve();
                 }
             })
         );
 
-        // Step 2: Search for teacher
+        // Step 2: search in OU=docenten
         let entries = await searchAsync(client, "ou=docenten,dc=ict,dc=lab,dc=locals", username);
         if (entries.length === 1) {
             console.log("[LDAP] User found in OU=docenten");
@@ -95,7 +109,7 @@ async function ldapAuthenticate(username, password, session) {
             return { message: "Docent ingelogd", session };
         }
 
-        // Step 3: Search for student
+        // Step 3: search in OU=glr_studenten
         entries = await searchAsync(client, "ou=glr_studenten,dc=ict,dc=lab,dc=locals", username);
         if (entries.length === 1) {
             console.log("[LDAP] User found in OU=glr_studenten");
@@ -107,19 +121,15 @@ async function ldapAuthenticate(username, password, session) {
             return { message: "Student ingelogd", session };
         }
 
-        // Step 4: No match
+        // Step 4: no match
         console.warn("[LDAP] Bind OK but no user found in docenten or studenten OUs");
         session.inlogError = "error";
         return { error: "Geen docent of student van het GLR" };
-
     } catch (err) {
-        // LDAP bind or search failed
         console.error("[LDAP] Error during authentication:", err);
         session.inlogError = "error";
         return { error: "LDAP binding of zoekfout", detail: err.message };
-
     } finally {
-        // Always close the connection
         try {
             client.unbind();
             console.log("[LDAP] Connection closed");
