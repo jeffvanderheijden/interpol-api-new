@@ -11,7 +11,8 @@ const PORT = process.env.PORT || 3000;
 
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://localhost:5173'
+  'https://localhost:5173',
+  'https://dashboard.heijden.sd-lab.nl'
 ];
 
 app.use(cors({
@@ -41,10 +42,14 @@ app.use(session({
 }));
 
 // Routes
+const health = require('./routes/health');
 const authRoutes = require('./routes/auth');
 const challenges = require('./routes/challenges');
 const groups = require('./routes/groups');
 const students = require('./routes/students');
+
+// TEST ROUTE
+app.use('/health', health);
 
 app.use('/api', authRoutes);
 app.use('/api/challenges', authRequired, challenges);
