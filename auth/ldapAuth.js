@@ -112,18 +112,28 @@ async function ldapAuthenticate(username, password, session) {
 
         // Step 2: search in OU=docenten
         let entries = await searchAsync(client, "ou=docenten,dc=ict,dc=lab,dc=locals", username);
-        if (entries.length === 1) {
+        if (entries && entries.length === 1 && entries[0]) {
             const entry = entries[0];
-            nodeLog(`[LDAP] User found in OU=docenten`);
-            nodeLog(`[LDAP] Entry attributes available: ${Object.keys(entry).join(", ")}`);
+            nodeLog("[LDAP] User found in OU=docenten");
+            nodeLog(`[LDAP] Raw entry type: ${typeof entry}`);
+            nodeLog(`[LDAP] Raw entry dump: ${JSON.stringify(entry, null, 2).slice(0, 500)}`);
+
+            const mail =
+                entry.mail ||
+                entry["mail"] ||
+                entry.userPrincipalName ||
+                entry["userPrincipalName"] ||
+                "";
 
             session.login = true;
             session.ingelogdAls = "DOCENT";
             session.inlogDocent = username;
-            session.mail = entry.mail || entry["userPrincipalName"] || "";
+            session.mail = mail;
 
-            nodeLog("[LOGIN] DOCENT login success");
+            nodeLog(`[LOGIN] DOCENT login success, mail=${mail}`);
             return { message: "Docent ingelogd", session };
+        } else {
+            nodeLog("[LDAP] No valid entry object returned from searchAsync (DOCENTEN)");
         }
 
         // Step 3: search in OU=glr_studenten
