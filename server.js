@@ -1,3 +1,6 @@
+// server.js
+// Interpol Intro Weeks API Server
+
 const express = require('express');
 const session = require('express-session');
 const dotenv = require('dotenv');
@@ -9,6 +12,9 @@ dotenv.config({ path: __dirname + '/.env' });
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ------------------------------------------------------------
+// CORS-configuratie
+// ------------------------------------------------------------
 const allowedOrigins = [
   'http://localhost:5173',
   'https://localhost:5173',
@@ -16,35 +22,27 @@ const allowedOrigins = [
   'https://api.heijden.sd-lab.nl'
 ];
 
-// ✅ CORS config
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true,
-  })
-);
-
-// Handle preflight
-app.options('*', cors({
+const corsOptions = {
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.warn('CORS blocked:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
-}));
+};
+
+// Pas CORS toe op alle routes en preflight-verzoeken
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 
-// Session middleware
+// ------------------------------------------------------------
+// Session-configuratie
+// ------------------------------------------------------------
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
@@ -52,15 +50,17 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 4,
-      domain: '.heijden.sd-lab.nl',
-      secure: true,       // goed
-      sameSite: 'none',   // goed, nodig voor cross-domain cookies
+      maxAge: 1000 * 60 * 60 * 4, // 4 uur
+      domain: '.heijden.sd-lab.nl', // geldig voor alle subdomeinen
+      secure: true,       // vereist HTTPS
+      sameSite: 'none',   // nodig voor cross-domain cookies
     },
   })
 );
 
+// ------------------------------------------------------------
 // Routes
+// ------------------------------------------------------------
 const health = require('./routes/health');
 const authRoutes = require('./routes/auth');
 const challenges = require('./routes/challenges');
@@ -73,10 +73,14 @@ app.use('/api/challenges', authRequired, challenges);
 app.use('/api/groups', authRequired, groups);
 app.use('/api/students', authRequired, students);
 
+// Fallback route
 app.get('/', (req, res) => {
   res.send('API for Interpol intro weeks by GLR');
 });
 
+// ------------------------------------------------------------
+// Start server
+// ------------------------------------------------------------
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
