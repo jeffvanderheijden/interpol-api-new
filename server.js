@@ -31,7 +31,16 @@ app.use(
 );
 
 // Handle preflight
-app.options('*', cors());
+app.options('*', cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
 
 app.use(express.json());
 
@@ -43,10 +52,10 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 4, // 4 hours
-      domain: '.heijden.sd-lab.nl', // applies to all subdomains
-      secure: true, // required for HTTPS
-      sameSite: 'none', // required for cross-site cookies
+      maxAge: 1000 * 60 * 60 * 4,
+      domain: '.heijden.sd-lab.nl',
+      secure: true,       // goed
+      sameSite: 'none',   // goed, nodig voor cross-domain cookies
     },
   })
 );
