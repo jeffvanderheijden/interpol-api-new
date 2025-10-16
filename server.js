@@ -12,7 +12,8 @@ const PORT = process.env.PORT || 3000;
 const allowedOrigins = [
   'http://localhost:5173',
   'https://localhost:5173',
-  'https://dashboard.heijden.sd-lab.nl'
+  'https://dashboard.heijden.sd-lab.nl',
+  'https://api.heijden.sd-lab.nl'
 ];
 
 // ✅ CORS config
