@@ -15,52 +15,58 @@ const allowedOrigins = [
   'https://dashboard.heijden.sd-lab.nl'
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+// ✅ CORS config
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  })
+);
+
+// ✅ Handle preflight
+app.options('*', cors());
 
 app.use(express.json());
 
-// Session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 4, // 4 uur
-    domain: ".interpol.sd-lab.nl", // werkt op alle subdomeinen
-    secure: false // zet op true als je HTTPS gebruikt
-  }
-}));
+// ✅ Session middleware
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 4, // 4 hours
+      domain: '.heijden.sd-lab.nl', // applies to all subdomains
+      secure: true, // required for HTTPS
+      sameSite: 'none', // required for cross-site cookies
+    },
+  })
+);
 
-// Routes
+// ✅ Routes
 const health = require('./routes/health');
 const authRoutes = require('./routes/auth');
 const challenges = require('./routes/challenges');
 const groups = require('./routes/groups');
 const students = require('./routes/students');
 
-// TEST ROUTE
 app.use('/health', health);
-
 app.use('/api', authRoutes);
 app.use('/api/challenges', authRequired, challenges);
 app.use('/api/groups', authRequired, groups);
 app.use('/api/students', authRequired, students);
 
-// Root
 app.get('/', (req, res) => {
-  res.send('API for interpol intro weeks by GLR');
+  res.send('API for Interpol intro weeks by GLR');
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
