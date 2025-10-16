@@ -24,7 +24,7 @@ function searchAsync(client, base, username) {
         const opts = {
             filter,
             scope: "sub",
-            attributes: ["mail", "samaccountname"],
+            attributes: ["mail", "samaccountname", "userPrincipalName", "distinguishedName"],
         };
 
         const entries = [];
@@ -36,18 +36,35 @@ function searchAsync(client, base, username) {
                 return reject(err);
             }
 
-            res.on("searchEntry", (entry) => entries.push(entry.object));
+            res.on("searchEntry", (entry) => {
+                // Fallback for different ldapjs shapes
+                let data =
+                    entry.object ||
+                    entry.attributes?.reduce?.((acc, attr) => {
+                        acc[attr.type] = attr.vals?.[0] || null;
+                        return acc;
+                    }, {}) ||
+                    null;
+
+                nodeLog(`[LDAP] Raw entry received (${base}): ${JSON.stringify(data)}`);
+                entries.push(data);
+            });
+
             res.on("error", (err) => {
                 nodeLog(`[LDAP] Search stream error: ${err.message}`);
                 reject(err);
             });
+
             res.on("end", () => {
-                nodeLog(`[LDAP] Search completed in ${base}, entries found: ${entries.length}`);
+                nodeLog(
+                    `[LDAP] Search completed in ${base}, entries found: ${entries.length}`
+                );
                 resolve(entries);
             });
         });
     });
 }
+
 
 /**
  * Authenticate a user against the GLR LDAP directory and update the Express session.
