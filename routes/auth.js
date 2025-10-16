@@ -13,18 +13,17 @@ router.post('/login', async (req, res) => {
 
     try {
         const result = await ldapAuthenticate(gebruikersnaam, wachtwoord, req.session);
-        if (result.error) return res.status(401).json({ message: result.error });
-        res.json(result);
+
+        if (result.error) {
+            return res.status(401).json({ message: result.error });
+        }
+
+        return res.json(result);
+
     } catch (err) {
         console.error("LDAP auth failed:", err);
-        res.status(500).json({ error: "Interne serverfout" });
+        return res.status(500).json({ error: "Interne serverfout" });
     }
-
-    if (result.error) {
-        return res.status(401).json({ message: result.error });
-    }
-
-    res.json(result);
 });
 
 router.get('/session', (req, res) => {
@@ -34,7 +33,7 @@ router.get('/session', (req, res) => {
 router.post('/logout', (req, res) => {
     req.session.destroy((err) => {
         if (err) return res.status(500).json({ error: 'Kon niet uitloggen' });
-        res.clearCookie('connect.sid', { domain: '.interpol.sd-lab.nl', path: '/' });
+        res.clearCookie('connect.sid', { domain: '.heijden.sd-lab.nl', path: '/' });
         res.json({ message: 'Uitgelogd' });
     });
 });

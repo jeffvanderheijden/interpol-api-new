@@ -29,12 +29,12 @@ app.use(
   })
 );
 
-// ✅ Handle preflight
+// Handle preflight
 app.options('*', cors());
 
 app.use(express.json());
 
-// ✅ Session middleware
+// Session middleware
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
@@ -50,7 +50,7 @@ app.use(
   })
 );
 
-// ✅ Routes
+// Routes
 const health = require('./routes/health');
 const authRoutes = require('./routes/auth');
 const challenges = require('./routes/challenges');
