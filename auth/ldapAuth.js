@@ -2,21 +2,20 @@ const fs = require("fs");
 const path = require("path");
 const ldap = require("ldapjs");
 
-// --- File-based logger ---
+// --- Simple file logger ---
 const logFile = path.join(process.cwd(), "ldap-debug-node.log");
 function nodeLog(msg) {
     const line = `[${new Date().toISOString()}] ${msg}\n`;
     try {
         fs.appendFileSync(logFile, line);
-    } catch (err) {
-        // fallback to console if file write fails
-        console.log("Log write failed:", err.message);
+    } catch {
+        // fallback to stdout if file write fails
     }
     process.stdout.write(line);
 }
 
 /**
- * Helper: perform an LDAP search and return all entries.
+ * Search helper — fetch entries from LDAP and normalize structure
  */
 function searchAsync(client, base, username) {
     return new Promise((resolve, reject) => {
@@ -37,16 +36,13 @@ function searchAsync(client, base, username) {
             }
 
             res.on("searchEntry", (entry) => {
-                // Fallback for different ldapjs shapes
-                let data =
+                const data =
                     entry.object ||
                     entry.attributes?.reduce?.((acc, attr) => {
                         acc[attr.type] = attr.vals?.[0] || null;
                         return acc;
                     }, {}) ||
-                    null;
-
-                nodeLog(`[LDAP] Raw entry received (${base}): ${JSON.stringify(data)}`);
+                    {};
                 entries.push(data);
             });
 
@@ -56,24 +52,21 @@ function searchAsync(client, base, username) {
             });
 
             res.on("end", () => {
-                nodeLog(
-                    `[LDAP] Search completed in ${base}, entries found: ${entries.length}`
-                );
+                nodeLog(`[LDAP] Search completed in ${base}, entries found: ${entries.length}`);
                 resolve(entries);
             });
         });
     });
 }
 
-
 /**
- * Authenticate a user against the GLR LDAP directory and update the Express session.
+ * Authenticate user via LDAP and update session
  */
 async function ldapAuthenticate(username, password, session) {
     nodeLog("--------------------------------------------------");
     nodeLog(`[LOGIN] Attempt for user: ${username}`);
 
-    // Skip LDAP for local test accounts
+    // Local test accounts
     const testAccounts = [
         { u: "docent123", p: "docent123", type: "DOCENT", mail: "docent@glr.nl" },
         { u: "student1", p: "student1", type: "STUDENT", mail: "student@glr.nl" },
@@ -81,7 +74,6 @@ async function ldapAuthenticate(username, password, session) {
     ];
     const test = testAccounts.find((acc) => acc.u === username && acc.p === password);
     if (test) {
-        nodeLog(`[LOGIN] Matched local test account: ${test.u}`);
         session.login = true;
         session.ingelogdAls = test.type;
         session.mail = test.mail;
@@ -91,7 +83,7 @@ async function ldapAuthenticate(username, password, session) {
         return { message: `${test.type} ingelogd (test account)`, session };
     }
 
-    // --- LDAP configuration ---
+    // LDAP setup
     const ldapUrl = "ldap://145.118.4.6";
     const userPrincipal = `${username}@ict.lab.locals`;
     nodeLog(`[LDAP] Connecting to: ${ldapUrl}`);
@@ -106,15 +98,8 @@ async function ldapAuthenticate(username, password, session) {
         tlsOptions: { rejectUnauthorized: false },
     });
 
-    client.controls = [
-        new ldap.Control({
-            type: "1.2.840.113556.1.4.319", // PagedResultsControl
-            criticality: false,
-        }),
-    ];
-
     try {
-        // Step 1: bind (authenticate)
+        // Bind
         await new Promise((resolve, reject) =>
             client.bind(userPrincipal, password, (err) => {
                 if (err) {
@@ -127,55 +112,42 @@ async function ldapAuthenticate(username, password, session) {
             })
         );
 
-        // Step 2: search in OU=docenten
+        // Search docenten
         let entries = await searchAsync(client, "ou=docenten,dc=ict,dc=lab,dc=locals", username);
-        if (entries && entries.length === 1 && entries[0]) {
+        if (entries.length === 1) {
             const entry = entries[0];
-            nodeLog("[LDAP] User found in OU=docenten");
-            nodeLog(`[LDAP] Raw entry type: ${typeof entry}`);
-            nodeLog(`[LDAP] Raw entry dump: ${JSON.stringify(entry, null, 2).slice(0, 500)}`);
-
-            const mail =
-                entry.mail ||
-                entry["mail"] ||
-                entry.userPrincipalName ||
-                entry["userPrincipalName"] ||
-                "";
-
+            const mail = entry.mail || entry.userPrincipalName || "";
             session.login = true;
             session.ingelogdAls = "DOCENT";
             session.inlogDocent = username;
             session.mail = mail;
-
             nodeLog(`[LOGIN] DOCENT login success, mail=${mail}`);
             return { message: "Docent ingelogd", session };
-        } else {
-            nodeLog("[LDAP] No valid entry object returned from searchAsync (DOCENTEN)");
         }
 
-        // Step 3: search in OU=glr_studenten
+        // Search studenten
         entries = await searchAsync(client, "ou=glr_studenten,dc=ict,dc=lab,dc=locals", username);
         if (entries.length === 1) {
-            nodeLog("[LDAP] User found in OU=glr_studenten");
-            nodeLog(`[LDAP] Entry attributes available: ${Object.keys(entry).join(", ")}`);
-
+            const entry = entries[0];
+            const mail = entry.mail || entry.userPrincipalName || "";
             session.login = true;
             session.ingelogdAls = "STUDENT";
             session.inlogStudent = username;
-            session.mail = entry.mail || entry["userPrincipalName"] || "";
-
-            nodeLog("[LOGIN] STUDENT login success");
+            session.mail = mail;
+            nodeLog(`[LOGIN] STUDENT login success, mail=${mail}`);
             return { message: "Student ingelogd", session };
         }
 
-        // Step 4: no match
+        // No match
         nodeLog("[LDAP] Bind OK but no user found in docenten or studenten OUs");
         session.inlogError = "error";
         return { error: "Geen docent of student van het GLR" };
+
     } catch (err) {
         nodeLog(`[LDAP] Error during authentication: ${err.message}`);
         session.inlogError = "error";
         return { error: "LDAP binding of zoekfout", detail: err.message };
+
     } finally {
         try {
             client.unbind();
