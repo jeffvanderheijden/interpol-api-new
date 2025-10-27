@@ -32,29 +32,17 @@ const allowedOrigins = [
   'https://api.heijden.sd-lab.nl'
 ];
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn('CORS blocked:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+app.use(cors({
+  origin: (origin, cb) => !origin || allowedOrigins.includes(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS')),
   credentials: true,
-};
-
-// Pas CORS toe op alle routes en preflight-verzoeken
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+}));
+app.options('*', cors({ origin: allowedOrigins, credentials: true })); // ok
 
 app.use(express.json());
 
 // ------------------------------------------------------------
 // Session-configuratie
 // ------------------------------------------------------------
-app.set('trust proxy', 1);
-
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
@@ -66,6 +54,8 @@ app.use(
       domain: '.heijden.sd-lab.nl',
       secure: true,
       sameSite: 'none',
+      path: '/',
+      maxAge: 1000 * 60 * 60 * 4
     },
   })
 );
