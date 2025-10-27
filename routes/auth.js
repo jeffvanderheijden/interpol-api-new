@@ -9,7 +9,7 @@ const loginLimiter = rateLimit({
     message: { error: 'Te veel mislukte pogingen, probeer later opnieuw.' }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
     const { gebruikersnaam, wachtwoord } = req.body;
 
     if (!gebruikersnaam || !wachtwoord) {
