@@ -69,8 +69,7 @@ async function ldapAuthenticate(username, password, session) {
     // Local test accounts
     const testAccounts = [
         { u: "docent123", p: "docent123", type: "DOCENT", mail: "docent@glr.nl" },
-        { u: "student1", p: "student1", type: "STUDENT", mail: "student@glr.nl" },
-        { u: "student2", p: "student2", type: "STUDENT", mail: "student2@glr.nl" },
+        { u: "student123", p: "student123", type: "STUDENT", mail: "student@glr.nl" },
     ];
     const test = testAccounts.find((acc) => acc.u === username && acc.p === password);
     if (test) {
@@ -146,7 +145,7 @@ async function ldapAuthenticate(username, password, session) {
     } catch (err) {
         nodeLog(`[LDAP] Error during authentication: ${err.message}`);
         session.inlogError = "error";
-        return { error: "LDAP binding of zoekfout", detail: err.message };
+        return { error: "Er is iets fout gegaan", detail: err.message };
 
     } finally {
         try {
