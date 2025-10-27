@@ -6,7 +6,7 @@ const express = require('express');
 const session = require('express-session');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const authRequired = require('./middleware/authRequired');
+const requireLogin = require('./middleware/authRequired');
 
 dotenv.config({ path: __dirname + '/.env' });
 
@@ -60,10 +60,10 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 4, // 4 uur
-      domain: '.heijden.sd-lab.nl', // geldig voor alle subdomeinen
-      secure: true,       // vereist HTTPS
-      sameSite: 'none',   // nodig voor cross-domain cookies
+      maxAge: 1000 * 60 * 60 * 4,
+      domain: '.heijden.sd-lab.nl',
+      secure: true,
+      sameSite: 'none',
     },
   })
 );
@@ -79,9 +79,9 @@ const students = require('./routes/students');
 
 app.use('/health', health);
 app.use('/api', authRoutes);
-app.use('/api/challenges', authRequired, challenges);
-app.use('/api/groups', authRequired, groups);
-app.use('/api/students', authRequired, students);
+app.use('/api/challenges', requireLogin, challenges);
+app.use('/api/groups', requireLogin, groups);
+app.use('/api/students', requireLogin, students);
 
 // Fallback route
 app.get('/', (req, res) => {
