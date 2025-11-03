@@ -10,8 +10,6 @@ const loginLimiter = rateLimit({
 });
 
 router.post('/login', loginLimiter, async (req, res) => {
-    console.log('>>> /api/login reached', req.body);
-
     const { gebruikersnaam, wachtwoord } = req.body || {};
     if (!gebruikersnaam || !wachtwoord) {
         return res.status(400).json({ error: 'Gebruikersnaam en wachtwoord zijn verplicht' });
@@ -21,6 +19,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         const result = await ldapAuthenticate(gebruikersnaam, wachtwoord, req.session);
         if (result.error) return res.status(401).json({ message: result.error });
 
+        // 💡 prevent session fixation + ensure cookie is persisted before responding
         req.session.regenerate(err => {
             if (err) return res.status(500).json({ error: 'Interne serverfout (sessie)' });
 
@@ -32,12 +31,12 @@ router.post('/login', loginLimiter, async (req, res) => {
 
             req.session.save(err2 => {
                 if (err2) return res.status(500).json({ error: 'Interne serverfout (opslaan sessie)' });
-                res.json({ message: 'Ingelogd', user: req.session.user });
+                return res.json({ message: 'Ingelogd', user: req.session.user });
             });
         });
     } catch (err) {
-        console.error('LOGIN route crashed:', err);
-        res.status(500).json({ error: 'Interne serverfout' });
+        console.error('LDAP auth failed:', err);
+        return res.status(500).json({ error: 'Interne serverfout' });
     }
 });
 
