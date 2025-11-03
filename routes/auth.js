@@ -10,9 +10,9 @@ const loginLimiter = rateLimit({
 });
 
 router.post('/login', loginLimiter, async (req, res) => {
-    console.log('>>> /api/login reached');
+    console.log('>>> /api/login reached', req.body);
 
-    const { gebruikersnaam, wachtwoord } = req.body || {};   // ✅ safe destructure
+    const { gebruikersnaam, wachtwoord } = req.body || {};
     if (!gebruikersnaam || !wachtwoord) {
         return res.status(400).json({ error: 'Gebruikersnaam en wachtwoord zijn verplicht' });
     }
