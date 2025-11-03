@@ -119,7 +119,7 @@ async function ldapAuthenticate(username, password, session) {
             session.inlogDocent = username;
             session.mail = mail;
             nodeLog(`[LOGIN] DOCENT login success`);
-            return { message: "Docent ingelogd", session };
+            return { message: "Docent ingelogd", role: 'docent', session };
         }
 
         // Search Studenten
@@ -132,7 +132,7 @@ async function ldapAuthenticate(username, password, session) {
             session.inlogStudent = username;
             session.mail = mail;
             nodeLog(`[LOGIN] STUDENT login success`);
-            return { message: "Student ingelogd", session };
+            return { message: "Student ingelogd", role: 'student', session };
         }
 
         nodeLog("[LDAP] Bind OK but user not found in OUs");

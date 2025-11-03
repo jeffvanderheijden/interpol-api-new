@@ -67,7 +67,6 @@ app.use(
       secure: true,
       sameSite: 'none',
       path: '/',
-      maxAge: 1000 * 60 * 60 * 4
     },
   })
 );
