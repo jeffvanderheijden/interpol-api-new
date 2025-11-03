@@ -9,47 +9,37 @@ const loginLimiter = rateLimit({
     message: { error: 'Te veel mislukte pogingen, probeer later opnieuw.' }
 });
 
-router.post('/login', async (req, res) => {
-    console.log('>>> /api/login start');
+router.post('/login', loginLimiter, async (req, res) => {
+    console.log('>>> /api/login reached');
+
+    const { gebruikersnaam, wachtwoord } = req.body || {};   // ✅ safe destructure
+    if (!gebruikersnaam || !wachtwoord) {
+        return res.status(400).json({ error: 'Gebruikersnaam en wachtwoord zijn verplicht' });
+    }
+
     try {
-        const result = await ldapAuthenticate('student123', 'student123', req.session);
-        console.log('LDAP result:', result);
-        res.json(result);
+        const result = await ldapAuthenticate(gebruikersnaam, wachtwoord, req.session);
+        if (result.error) return res.status(401).json({ message: result.error });
+
+        req.session.regenerate(err => {
+            if (err) return res.status(500).json({ error: 'Interne serverfout (sessie)' });
+
+            req.session.user = {
+                username: gebruikersnaam,
+                name: result.displayName || gebruikersnaam,
+                role: result.role || 'student'
+            };
+
+            req.session.save(err2 => {
+                if (err2) return res.status(500).json({ error: 'Interne serverfout (opslaan sessie)' });
+                res.json({ message: 'Ingelogd', user: req.session.user });
+            });
+        });
     } catch (err) {
-        console.error('LDAP threw:', err);
-        res.status(500).json({ error: err.message });
+        console.error('LOGIN route crashed:', err);
+        res.status(500).json({ error: 'Interne serverfout' });
     }
 });
-// router.post('/login', loginLimiter, async (req, res) => {
-//     const { gebruikersnaam, wachtwoord } = req.body;
-//     if (!gebruikersnaam || !wachtwoord) {
-//         return res.status(400).json({ error: 'Gebruikersnaam en wachtwoord zijn verplicht' });
-//     }
-
-//     try {
-//         const result = await ldapAuthenticate(gebruikersnaam, wachtwoord, req.session);
-//         if (result.error) return res.status(401).json({ message: result.error });
-
-//         // 💡 prevent session fixation + ensure cookie is persisted before responding
-//         req.session.regenerate(err => {
-//             if (err) return res.status(500).json({ error: 'Interne serverfout (sessie)' });
-
-//             req.session.user = {
-//                 username: gebruikersnaam,
-//                 name: result.displayName || gebruikersnaam,
-//                 role: result.role || 'student'
-//             };
-
-//             req.session.save(err2 => {
-//                 if (err2) return res.status(500).json({ error: 'Interne serverfout (opslaan sessie)' });
-//                 return res.json({ message: 'Ingelogd', user: req.session.user });
-//             });
-//         });
-//     } catch (err) {
-//         console.error('LDAP auth failed:', err);
-//         return res.status(500).json({ error: 'Interne serverfout' });
-//     }
-// });
 
 router.get('/session', (req, res) => {
     res.json({ user: req.session?.user || null });
