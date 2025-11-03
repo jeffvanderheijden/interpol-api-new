@@ -32,13 +32,23 @@ const allowedOrigins = [
   'https://api.heijden.sd-lab.nl'
 ];
 
-app.use(cors({
-  origin: (origin, cb) => !origin || allowedOrigins.includes(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS')),
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Sta requests zonder origin toe (zoals Postman of sommige preflights)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-}));
-app.options('*', cors({ origin: allowedOrigins, credentials: true })); // ok
+};
 
-app.use(express.json());
+// Gebruik dit vóór routes en sessie
+app.use(cors(corsOptions));
+
+// Preflight expliciet toestaan
+app.options('*', cors(corsOptions));
 
 // ------------------------------------------------------------
 // Session-configuratie
