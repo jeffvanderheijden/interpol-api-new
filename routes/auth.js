@@ -4,8 +4,8 @@ const rateLimit = require('express-rate-limit');
 const ldapAuthenticate = require('./../auth/ldapAuth');
 
 const loginLimiter = rateLimit({
-    windowMs: 5 * 60 * 1000,   // 5 minuten
-    max: 5,                    // 5 pogingen
+    windowMs: 2 * 60 * 1000,   // 2 minuten
+    max: 15,                   // 15 pogingen
     message: { error: 'Te veel mislukte pogingen, probeer later opnieuw.' }
 });
 
