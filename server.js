@@ -46,6 +46,7 @@ const corsOptions = {
   preflightContinue: false,
   optionsSuccessStatus: 204,
 };
+
 app.use(cors(corsOptions));
 
 // Preflight expliciet toestaan
