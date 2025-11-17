@@ -34,7 +34,6 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Sta requests zonder origin toe (zoals Postman of sommige preflights)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -42,9 +41,11 @@ const corsOptions = {
     }
   },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
 };
-
-// Gebruik dit vóór routes en sessie
 app.use(cors(corsOptions));
 
 // Preflight expliciet toestaan
