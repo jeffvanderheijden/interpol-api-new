@@ -1,10 +1,14 @@
-const Database = require("better-sqlite3");
-const path = require("path");
+// db.js
+const mysql = require("mysql2/promise");
 
-const dbPath = path.join(__dirname, "interpol_dashboard.db");
-const db = new Database(dbPath);
+const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME || "api_interpol",
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+});
 
-// optioneel: foreign keys aan
-db.pragma("foreign_keys = ON");
-
-module.exports = db;
+module.exports = { pool };

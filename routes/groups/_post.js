@@ -1,38 +1,41 @@
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
-import { pool } from "../../db.js";
+// routes/groups/_post.js
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const { pool } = require("./../../database/database.js");
 
-export default async function postHandler(req, res) {
+module.exports = async function postHandler(req, res) {
     const { teamPhoto, members } = req.body;
 
     if (!teamPhoto || !members || members.length < 3) {
         return res.status(400).json({ error: "Invalid team data" });
     }
 
-    const connection = await pool.getConnection();
+    let connection;
 
     try {
+        connection = await pool.getConnection();
         await connection.beginTransaction();
 
-        // ----------------------------------------
+        // ------------------------------------------
         // 1. FOTO OPSLAAN
-        // ----------------------------------------
+        // ------------------------------------------
         const base64 = teamPhoto.replace(/^data:image\/\w+;base64,/, "");
         const fileName = `group_${Date.now()}.png`;
-        const folder = path.join("uploads", "groups");
 
-        if (!fs.existsSync(folder)) {
-            fs.mkdirSync(folder, { recursive: true });
+        // Noodzakelijk op Plesk → absoluut pad
+        const uploadRoot = path.join(__dirname, "../../../uploads/groups");
+
+        if (!fs.existsSync(uploadRoot)) {
+            fs.mkdirSync(uploadRoot, { recursive: true });
         }
 
-        const filePath = path.join(folder, fileName);
+        const filePath = path.join(uploadRoot, fileName);
         fs.writeFileSync(filePath, base64, "base64");
 
-        // ----------------------------------------
+        // ------------------------------------------
         // 2. GROUP AANMAKEN
-        // name is verplicht → dus genereren we er één
-        // ----------------------------------------
+        // ------------------------------------------
         const groupName = `Team_${Math.floor(Math.random() * 9000 + 1000)}`;
 
         const [groupRes] = await connection.execute(
@@ -43,9 +46,9 @@ export default async function postHandler(req, res) {
 
         const groupId = groupRes.insertId;
 
-        // ----------------------------------------
+        // ------------------------------------------
         // 3. TEAMLEDEN OPSLAAN
-        // ----------------------------------------
+        // ------------------------------------------
         for (const m of members) {
             await connection.execute(
                 `INSERT INTO group_members (group_id, name, student_number)
@@ -54,16 +57,16 @@ export default async function postHandler(req, res) {
             );
         }
 
-        // ----------------------------------------
+        // ------------------------------------------
         // 4. CHALLENGES OPHALEN
-        // ----------------------------------------
+        // ------------------------------------------
         const [challenges] = await connection.execute(
             `SELECT id FROM challenges WHERE is_active = 1`
         );
 
-        // ----------------------------------------
-        // 5. KOPPELEN VIA group_challenges
-        // ----------------------------------------
+        // ------------------------------------------
+        // 5. group_challenges aanmaken
+        // ------------------------------------------
         for (const c of challenges) {
             const keycode = crypto.randomBytes(8).toString("hex");
 
@@ -80,15 +83,14 @@ export default async function postHandler(req, res) {
         return res.json({
             success: true,
             id: groupId,
-            name: groupName,
-            image_url: filePath
+            name: groupName
         });
 
     } catch (err) {
-        console.error(err);
-        await connection.rollback();
+        console.error("POST /api/groups ERROR:", err);
+        if (connection) await connection.rollback();
         return res.status(500).json({ error: "Internal server error" });
     } finally {
-        connection.release();
+        if (connection) connection.release();
     }
-}
+};
