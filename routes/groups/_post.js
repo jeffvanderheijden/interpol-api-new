@@ -24,7 +24,7 @@ module.exports = async function postHandler(req, res) {
         const fileName = `group_${Date.now()}.png`;
 
         // Noodzakelijk op Plesk → absoluut pad
-        const uploadRoot = path.join(__dirname, "../../../uploads/groups");
+        const uploadRoot = path.join(__dirname, "../../uploads/groups");
 
         if (!fs.existsSync(uploadRoot)) {
             fs.mkdirSync(uploadRoot, { recursive: true });
