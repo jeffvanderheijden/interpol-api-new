@@ -1,5 +1,3 @@
-// server.js
-// Interpol Intro Weeks API Server
 const fs = require("fs");
 const path = require("path");
 const express = require('express');
@@ -79,7 +77,7 @@ app.use(
 const health = require('./routes/health');
 const authRoutes = require('./routes/auth');
 const challenges = require('./routes/challenges');
-const groups = require('./routes/groups');
+const groups = require('./routes/groups/groups');
 const students = require('./routes/students');
 
 app.use('/health', health);
