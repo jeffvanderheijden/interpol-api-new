@@ -87,9 +87,18 @@ module.exports = async function postHandler(req, res) {
         });
 
     } catch (err) {
-        console.error("POST /api/groups ERROR:", err);
-        if (connection) await connection.rollback();
-        return res.status(500).json({ error: "Internal server error" });
+        console.error("❌ POST /api/groups ERROR:", err);
+        if (connection) {
+            try { await connection.rollback(); }
+            catch (rbErr) { console.error("❌ ROLLBACK ERROR:", rbErr); }
+        }
+
+        return res.status(500).json({
+            error: err.message,
+            stack: err.stack,
+            sql: err.sql,
+            sqlMessage: err.sqlMessage
+        });
     } finally {
         if (connection) connection.release();
     }
