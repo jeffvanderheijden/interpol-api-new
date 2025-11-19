@@ -7,9 +7,15 @@ const cors = require('cors');
 const requireLogin = require('./middleware/authRequired');
 
 // ------------------------------------------------------------
-// Load environment variables (WORKS ON PLESK)
+// Load environment variables 
 // ------------------------------------------------------------
-dotenv.config(); // <-- FIXED (laat dotenv zelf .env vinden)
+dotenv.config();
+
+console.log("DEBUG_DB:", {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  pass: process.env.DB_PASS instanceof String ? "string" : process.env.DB_PASS,
+});
 
 // ------------------------------------------------------------
 // Init Express
