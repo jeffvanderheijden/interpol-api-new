@@ -6,15 +6,27 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const requireLogin = require('./middleware/authRequired');
 
-dotenv.config({ path: __dirname + '/.env' });
+// ------------------------------------------------------------
+// Load environment variables (WORKS ON PLESK)
+// ------------------------------------------------------------
+dotenv.config(); // <-- FIXED (laat dotenv zelf .env vinden)
 
+// ------------------------------------------------------------
+// Init Express
+// ------------------------------------------------------------
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 const PORT = process.env.PORT || 3000;
 
-// Debugger
-const logStream = fs.createWriteStream(path.join(process.cwd(), "ldap-debug-node.log"), { flags: "a" });
+// ------------------------------------------------------------
+// Debug Logger
+// ------------------------------------------------------------
+const logStream = fs.createWriteStream(
+  path.join(process.cwd(), "ldap-debug-node.log"),
+  { flags: "a" }
+);
+
 function nodeLog(line) {
   const msg = `[${new Date().toISOString()}] ${line}\n`;
   process.stdout.write(msg);
@@ -23,7 +35,7 @@ function nodeLog(line) {
 global.nodeLog = nodeLog;
 
 // ------------------------------------------------------------
-// CORS-configuratie
+// CORS
 // ------------------------------------------------------------
 const allowedOrigins = [
   'http://localhost:5173',
@@ -48,12 +60,10 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// Preflight expliciet toestaan
 app.options('*', cors(corsOptions));
 
 // ------------------------------------------------------------
-// Session-configuratie
+// Session
 // ------------------------------------------------------------
 app.set('trust proxy', 1);
 
@@ -88,7 +98,9 @@ app.use('/api/challenges', requireLogin, challenges);
 app.use('/api/groups', requireLogin, groups);
 app.use('/api/students', requireLogin, students);
 
-// Fallback route
+// ------------------------------------------------------------
+// Root fallback
+// ------------------------------------------------------------
 app.get('/', (req, res) => {
   res.send('API for Interpol intro weeks by GLR');
 });
