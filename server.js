@@ -9,13 +9,21 @@ const requireLogin = require('./middleware/authRequired');
 // ------------------------------------------------------------
 // Load environment variables 
 // ------------------------------------------------------------
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
 
-console.log("DEBUG_DB:", {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  pass: process.env.DB_PASS instanceof String ? "string" : process.env.DB_PASS,
-});
+//Debugging 
+const debugData = {
+  DB_HOST: process.env.DB_HOST,
+  DB_USER: process.env.DB_USER,
+  DB_PASS: process.env.DB_PASS,
+  DB_NAME: process.env.DB_NAME,
+};
+
+try {
+  fs.writeFileSync('/tmp/interpol-db-debug.json', JSON.stringify(debugData, null, 2));
+} catch (e) {
+  // als dit faalt is dat ook nuttig, maar niet fataal voor de app
+}
 
 // ------------------------------------------------------------
 // Init Express
