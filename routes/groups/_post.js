@@ -23,22 +23,15 @@ module.exports = async function postHandler(req, res) {
         const base64 = teamPhoto.replace(/^data:image\/\w+;base64,/, "");
         const fileName = `group_${Date.now()}.png`;
 
-        // Absoluut pad voor Plesk
+        // Noodzakelijk op Plesk → absoluut pad
         const uploadRoot = path.join(__dirname, "../../uploads/groups");
 
         if (!fs.existsSync(uploadRoot)) {
             fs.mkdirSync(uploadRoot, { recursive: true });
         }
 
-        // Lokaal opslaan
         const filePath = path.join(uploadRoot, fileName);
         fs.writeFileSync(filePath, base64, "base64");
-
-        // Publieke URL die in DB moet
-        // API_BASE_URL moet in .env staan
-        const baseUrl = process.env.API_BASE_URL || "https://api.heijden.sd-lab.nl";
-
-        const publicUrl = `${baseUrl}/uploads/groups/${fileName}`;
 
         // ------------------------------------------
         // 2. GROUP AANMAKEN
@@ -48,7 +41,7 @@ module.exports = async function postHandler(req, res) {
         const [groupRes] = await connection.execute(
             `INSERT INTO groups (name, image_url, class, created_at)
              VALUES (?, ?, NULL, NOW())`,
-            [groupName, publicUrl]
+            [groupName, filePath]
         );
 
         const groupId = groupRes.insertId;
@@ -90,8 +83,7 @@ module.exports = async function postHandler(req, res) {
         return res.json({
             success: true,
             id: groupId,
-            name: groupName,
-            image_url: publicUrl
+            name: groupName
         });
 
     } catch (err) {
