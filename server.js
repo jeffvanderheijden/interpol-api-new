@@ -1,33 +1,20 @@
 const fs = require("fs");
 const path = require("path");
-const express = require("express");
-const session = require("express-session");
-const dotenv = require("dotenv");
-const cors = require("cors");
-const requireLogin = require("./middleware/authRequired");
+const express = require('express');
+const session = require('express-session');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const requireLogin = require('./middleware/authRequired');
 
-// ----------------------------------------------
-// LOAD ENV (Laat dotenv ZELF zoeken → correct)
-// ----------------------------------------------
-dotenv.config();
+dotenv.config({ path: __dirname + '/.env' });
 
-// ----------------------------------------------
-// EXPRESS INIT
-// ----------------------------------------------
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
 const PORT = process.env.PORT || 3000;
 
-// ----------------------------------------------
-// DEBUG LOGGER
-// ----------------------------------------------
-const logStream = fs.createWriteStream(
-  path.join(process.cwd(), "ldap-debug-node.log"),
-  { flags: "a" }
-);
-
+// Debugger
+const logStream = fs.createWriteStream(path.join(process.cwd(), "ldap-debug-node.log"), { flags: "a" });
 function nodeLog(line) {
   const msg = `[${new Date().toISOString()}] ${line}\n`;
   process.stdout.write(msg);
@@ -35,14 +22,14 @@ function nodeLog(line) {
 }
 global.nodeLog = nodeLog;
 
-// ----------------------------------------------
-// CORS CONFIG
-// ----------------------------------------------
+// ------------------------------------------------------------
+// CORS-configuratie
+// ------------------------------------------------------------
 const allowedOrigins = [
-  "http://localhost:5173",
-  "https://localhost:5173",
-  "https://dashboard.heijden.sd-lab.nl",
-  "https://api.heijden.sd-lab.nl"
+  'http://localhost:5173',
+  'https://localhost:5173',
+  'https://dashboard.heijden.sd-lab.nl',
+  'https://api.heijden.sd-lab.nl'
 ];
 
 const corsOptions = {
@@ -50,7 +37,7 @@ const corsOptions = {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
@@ -61,12 +48,14 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
 
-// ----------------------------------------------
-// SESSION CONFIG
-// ----------------------------------------------
-app.set("trust proxy", 1);
+// Preflight expliciet toestaan
+app.options('*', cors(corsOptions));
+
+// ------------------------------------------------------------
+// Session-configuratie
+// ------------------------------------------------------------
+app.set('trust proxy', 1);
 
 app.use(
   session({
@@ -75,34 +64,38 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      maxAge: process.env.SESSION_MAX_AGE || 1000 * 60 * 60 * 4,
-      domain: ".heijden.sd-lab.nl",
+      maxAge: 1000 * 60 * 60 * 4,
+      domain: '.heijden.sd-lab.nl',
       secure: true,
-      sameSite: "none",
-      path: "/",
+      sameSite: 'none',
+      path: '/',
     },
   })
 );
 
-// ----------------------------------------------
-// ROUTES
-// ----------------------------------------------
-app.use("/health", require("./routes/health"));
-app.use("/api", require("./routes/auth"));
-app.use("/api/challenges", requireLogin, require("./routes/challenges"));
-app.use("/api/groups", requireLogin, require("./routes/groups/groups"));
-app.use("/api/students", requireLogin, require("./routes/students"));
+// ------------------------------------------------------------
+// Routes
+// ------------------------------------------------------------
+const health = require('./routes/health');
+const authRoutes = require('./routes/auth');
+const challenges = require('./routes/challenges');
+const groups = require('./routes/groups/groups');
+const students = require('./routes/students');
 
-// ----------------------------------------------
-// ROOT
-// ----------------------------------------------
-app.get("/", (req, res) => {
-  res.send("API for Interpol intro weeks by GLR");
+app.use('/health', health);
+app.use('/api', authRoutes);
+app.use('/api/challenges', requireLogin, challenges);
+app.use('/api/groups', requireLogin, groups);
+app.use('/api/students', requireLogin, students);
+
+// Fallback route
+app.get('/', (req, res) => {
+  res.send('API for Interpol intro weeks by GLR');
 });
 
-// ----------------------------------------------
-// GLOBAL ERROR HANDLER
-// ----------------------------------------------
+// ------------------------------------------------------------
+// Global error handler
+// ------------------------------------------------------------
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR HANDLER:", err);
   res.status(500).json({
@@ -111,9 +104,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ----------------------------------------------
-// START SERVER
-// ----------------------------------------------
+// ------------------------------------------------------------
+// Start server
+// ------------------------------------------------------------
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
