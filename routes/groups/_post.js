@@ -91,6 +91,20 @@ module.exports = async function postHandler(req, res) {
 
         await connection.commit();
 
+        // ------------------------------------------
+        // 6. UPDATE SESSIE MET NIEUWE TEAM ID
+        // ------------------------------------------
+        if (req.session && req.session.user) {
+            req.session.user.teamId = groupId;
+
+            await new Promise((resolve, reject) => {
+                req.session.save(err => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        }
+
         return res.json({
             success: true,
             id: groupId,

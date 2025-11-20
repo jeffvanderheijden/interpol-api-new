@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const ldapAuthenticate = require('./../auth/ldapAuth');
+import { pool } from './../database/database.js';
 
 const loginLimiter = rateLimit({
     windowMs: 1 * 60 * 1000,   // 1 minuut
@@ -19,14 +20,34 @@ router.post('/login', loginLimiter, async (req, res) => {
         const result = await ldapAuthenticate(gebruikersnaam, wachtwoord, req.session);
         if (result.error) return res.status(401).json({ message: result.error });
 
-        // 💡 prevent session fixation + ensure cookie is persisted before responding
+        // Check of gebruiker al in een team zit
+        let teamId = null;
+
+        try {
+            const [teamRows] = await pool.execute(
+                `SELECT group_id 
+                 FROM group_members 
+                 WHERE student_number = ? 
+                 LIMIT 1`,
+                [gebruikersnaam]
+            );
+
+            if (teamRows.length > 0) {
+                teamId = teamRows[0].group_id;
+            }
+        } catch (teamErr) {
+            console.error("Kon teamId niet ophalen:", teamErr);
+        }
+
+        // prevent session fixation + ensure cookie is persisted before responding
         req.session.regenerate(err => {
             if (err) return res.status(500).json({ error: 'Interne serverfout (sessie)' });
 
             req.session.user = {
                 username: gebruikersnaam,
                 name: result.displayName || gebruikersnaam,
-                role: result.role || 'student'
+                role: result.role || 'student',
+                teamId 
             };
 
             req.session.save(err2 => {
@@ -39,6 +60,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         return res.status(500).json({ error: 'Interne serverfout' });
     }
 });
+
 
 router.get('/session', (req, res) => {
     res.json({ user: req.session?.user || null });
