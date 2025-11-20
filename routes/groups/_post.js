@@ -1,14 +1,25 @@
-// routes/groups/_post.js
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { pool } = require("./../../database/database.js");
 
 module.exports = async function postHandler(req, res) {
-    const { teamPhoto, members } = req.body;
+    const { teamPhoto, members, teamName, className } = req.body;
 
-    if (!teamPhoto || !members || members.length < 3) {
-        return res.status(400).json({ error: "Invalid team data" });
+    // ------------------------------------------
+    // VALIDATIE
+    // ------------------------------------------
+    if (!teamPhoto) {
+        return res.status(400).json({ error: "Teamfoto ontbreekt." });
+    }
+    if (!teamName || !teamName.trim()) {
+        return res.status(400).json({ error: "Teamnaam ontbreekt." });
+    }
+    if (!className || !className.trim()) {
+        return res.status(400).json({ error: "Klas ontbreekt." });
+    }
+    if (!members || members.length < 3) {
+        return res.status(400).json({ error: "Minimaal 3 teamleden vereist." });
     }
 
     let connection;
@@ -23,32 +34,25 @@ module.exports = async function postHandler(req, res) {
         const base64 = teamPhoto.replace(/^data:image\/\w+;base64,/, "");
         const fileName = `group_${Date.now()}.png`;
 
-        // Absoluut pad voor Plesk
         const uploadRoot = path.join(__dirname, "../../uploads/groups");
 
         if (!fs.existsSync(uploadRoot)) {
             fs.mkdirSync(uploadRoot, { recursive: true });
         }
 
-        // Lokaal opslaan
-        const filePath = path.join(uploadRoot, fileName);
-        fs.writeFileSync(filePath, base64, "base64");
+        const fullPath = path.join(uploadRoot, fileName);
+        fs.writeFileSync(fullPath, base64, "base64");
 
-        // Publieke URL die in DB moet
-        // API_BASE_URL moet in .env staan
         const baseUrl = process.env.API_BASE_URL || "https://api.heijden.sd-lab.nl";
-
         const publicUrl = `${baseUrl}/uploads/groups/${fileName}`;
 
         // ------------------------------------------
-        // 2. GROUP AANMAKEN
+        // 2. TEAM AANMAKEN (HIER!)
         // ------------------------------------------
-        const groupName = `Team_${Math.floor(Math.random() * 9000 + 1000)}`;
-
         const [groupRes] = await connection.execute(
             `INSERT INTO groups (name, image_url, class, created_at)
-             VALUES (?, ?, NULL, NOW())`,
-            [groupName, publicUrl]
+             VALUES (?, ?, ?, NOW())`,
+            [teamName, publicUrl, className]
         );
 
         const groupId = groupRes.insertId;
@@ -65,14 +69,14 @@ module.exports = async function postHandler(req, res) {
         }
 
         // ------------------------------------------
-        // 4. CHALLENGES OPHALEN
+        // 4. ACTIEVE CHALLENGES OPHALEN
         // ------------------------------------------
         const [challenges] = await connection.execute(
             `SELECT id FROM challenges WHERE is_active = 1`
         );
 
         // ------------------------------------------
-        // 5. group_challenges aanmaken
+        // 5. RELATIES VOOR CHALLENGES AANMAKEN
         // ------------------------------------------
         for (const c of challenges) {
             const keycode = crypto.randomBytes(8).toString("hex");
@@ -90,12 +94,14 @@ module.exports = async function postHandler(req, res) {
         return res.json({
             success: true,
             id: groupId,
-            name: groupName,
+            name: teamName,
+            class: className,
             image_url: publicUrl
         });
 
     } catch (err) {
         console.error("❌ POST /api/groups ERROR:", err);
+
         if (connection) {
             try { await connection.rollback(); }
             catch (rbErr) { console.error("❌ ROLLBACK ERROR:", rbErr); }
