@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const ldapAuthenticate = require('./../auth/ldapAuth');
-import { pool } from './../database/database.js';
+const { pool } = require('./../database/database.js');
 
 const loginLimiter = rateLimit({
     windowMs: 1 * 60 * 1000,   // 1 minuut
