@@ -20,7 +20,7 @@ const debugData = {
 };
 
 try {
-  fs.writeFileSync('/tmp/interpol-db-debug.json', JSON.stringify(debugData, null, 2));
+  fs.writeFileSync('./tmp/interpol-db-debug.json', JSON.stringify(debugData, null, 2));
 } catch (e) {
   // als dit faalt is dat ook nuttig, maar niet fataal voor de app
 }
