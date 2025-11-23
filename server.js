@@ -5,6 +5,7 @@ const session = require('express-session');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const requireLogin = require('./middleware/authRequired');
+const requireTeacher = require('./middleware/teacherRequired');
 
 // ------------------------------------------------------------
 // Load environment variables 
@@ -90,13 +91,20 @@ const health = require('./routes/health');
 const authRoutes = require('./routes/auth');
 const challenges = require('./routes/challenges');
 const groups = require('./routes/groups/groups');
+const adminGroups = require('./routes/admin/groups/groups');
 const students = require('./routes/students');
 
+// Public routes
 app.use('/health', health);
 app.use('/api', authRoutes);
+
+// Student routes
 app.use('/api/challenges', requireLogin, challenges);
 app.use('/api/groups', requireLogin, groups);
 app.use('/api/students', requireLogin, students);
+
+// Admin routes
+app.use('/api/admin/groups', requireLogin, requireTeacher, adminGroups);
 
 // ------------------------------------------------------------
 // Root fallback
