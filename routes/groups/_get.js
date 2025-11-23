@@ -1,4 +1,4 @@
-const { pool } = require("../../../database/database.js");
+const { pool } = require("./../../database/database.js");
 
 module.exports = async function getHandler(req, res) {
     const groupId = Number(req.params.id);

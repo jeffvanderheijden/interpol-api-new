@@ -1,4 +1,4 @@
-const { pool } = require("../../../database/database.js");
+const { pool } = require("./../../../database/database.js");
 
 module.exports = async function postHandler(req, res) {
     const { name, className } = req.body;
