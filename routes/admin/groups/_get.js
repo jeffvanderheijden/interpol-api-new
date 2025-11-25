@@ -13,7 +13,6 @@ module.exports = async function getHandler(req, res) {
                 g.image_url,
                 g.created_at,
 
-                -- totale punten direct berekend
                 COALESCE((
                     SELECT SUM(COALESCE(points,0) - COALESCE(point_deduction,0))
                     FROM group_challenges gc
@@ -25,10 +24,11 @@ module.exports = async function getHandler(req, res) {
         `);
 
         //
-        // 2. Haal ALLE members op
+        // 2. Haal ALLE members op (nu inclusief id!)
         //
         const [memberRows] = await pool.execute(`
             SELECT 
+                id,
                 group_id,
                 name,
                 student_number
@@ -42,6 +42,7 @@ module.exports = async function getHandler(req, res) {
         const membersByGroup = memberRows.reduce((acc, m) => {
             if (!acc[m.group_id]) acc[m.group_id] = [];
             acc[m.group_id].push({
+                id: m.id,
                 name: m.name,
                 student_number: m.student_number
             });
