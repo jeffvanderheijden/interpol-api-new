@@ -5,14 +5,11 @@ module.exports = async function updateMember(req, res) {
     const { name, student_number } = req.body;
 
     try {
-        await pool.execute(
-            `
+        await pool.execute(`
             UPDATE group_members
             SET name = ?, student_number = ?
             WHERE id = ?
-            `,
-            [name, student_number, memberId]
-        );
+        `, [name, student_number, memberId]);
 
         res.json({ success: true });
 
