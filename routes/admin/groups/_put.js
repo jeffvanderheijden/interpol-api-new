@@ -38,7 +38,7 @@ module.exports = async function putHandler(req, res) {
             fields.push("image_url = NULL");
         } else if (image_url.startsWith("data:image/")) {
             // Base64 binnengekregen → opslaan als bestand
-            const base64 = image_url.split(",")[1];
+            const base64 = image_url.replace(/^data:image\/\w+;base64,/, "");
             const fileName = `group_${Date.now()}.png`;
 
             const uploadRoot = path.join(__dirname, "../../uploads/groups");
