@@ -9,6 +9,9 @@ module.exports = async function putHandler(req, res) {
     const fields = [];
     const values = [];
 
+    let savedFullPath = null;
+    let savedPublicUrl = null;
+
     // ------------------------------------------
     // 1. TEAMNAAM & KLAS (partial update)
     // ------------------------------------------
@@ -29,33 +32,38 @@ module.exports = async function putHandler(req, res) {
     }
 
     // ------------------------------------------
-    // 2. FOTO UPDATE?
-    //    image_url bevat base64 of null
+    // 2. FOTO UPDATE
     // ------------------------------------------
     if (image_url !== undefined) {
         if (image_url === null) {
-            // Foto verwijderd → leegmaken
             fields.push("image_url = NULL");
-        } else if (image_url.startsWith("data:image/")) {
-            // Base64 binnengekregen → opslaan als bestand
-            const base64 = image_url.replace(/^data:image\/\w+;base64,/, "");
+        }
+        else if (image_url.startsWith("data:image/")) {
+            const base64 = image_url.split(",")[1];
             const fileName = `group_${Date.now()}.png`;
 
-            const uploadRoot = path.join(__dirname, "uploads/groups");
+            // FIXED PATH!!
+            const uploadRoot = path.join(process.cwd(), "uploads/groups");
+
             if (!fs.existsSync(uploadRoot)) {
                 fs.mkdirSync(uploadRoot, { recursive: true });
             }
 
             const fullPath = path.join(uploadRoot, fileName);
+
+            // Save the file
             fs.writeFileSync(fullPath, base64, "base64");
 
             const baseUrl = process.env.API_BASE_URL || "https://api.heijden.sd-lab.nl";
             const publicUrl = `${baseUrl}/uploads/groups/${fileName}`;
 
+            savedFullPath = fullPath;
+            savedPublicUrl = publicUrl;
+
             fields.push("image_url = ?");
             values.push(publicUrl);
-        } else {
-            // Normale URL → direct opslaan
+        }
+        else {
             fields.push("image_url = ?");
             values.push(image_url);
         }
@@ -73,10 +81,17 @@ module.exports = async function putHandler(req, res) {
             values
         );
 
-        res.json({ success: true });
+        return res.json({
+            success: true,
+            savedFullPath,   
+            savedPublicUrl   
+        });
 
     } catch (err) {
         console.error("Admin PUT group error:", err);
-        res.status(500).json({ error: "Server error" });
+        res.status(500).json({
+            error: "Server error",
+            details: err.message
+        });
     }
 };

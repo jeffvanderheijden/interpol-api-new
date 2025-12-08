@@ -29,12 +29,15 @@ module.exports = async function postHandler(req, res) {
         await connection.beginTransaction();
 
         // ------------------------------------------
-        // 1. FOTO OPSLAAN
+        // 1. FOTO OPSLAAN (GEFIXT)
         // ------------------------------------------
-        const base64 = teamPhoto.replace(/^data:image\/\w+;base64,/, "");
+
+        // Betrouwbare base64 extractie
+        const base64 = teamPhoto.split(",")[1];
         const fileName = `group_${Date.now()}.png`;
 
-        const uploadRoot = path.join(__dirname, "uploads/groups");
+        // ✔ Correct pad voor álle handlers
+        const uploadRoot = path.join(process.cwd(), "uploads/groups");
 
         if (!fs.existsSync(uploadRoot)) {
             fs.mkdirSync(uploadRoot, { recursive: true });
@@ -47,7 +50,7 @@ module.exports = async function postHandler(req, res) {
         const publicUrl = `${baseUrl}/uploads/groups/${fileName}`;
 
         // ------------------------------------------
-        // 2. TEAM AANMAKEN (HIER!)
+        // 2. TEAM AANMAKEN
         // ------------------------------------------
         const [groupRes] = await connection.execute(
             `INSERT INTO groups (name, image_url, class, created_at)
@@ -92,7 +95,7 @@ module.exports = async function postHandler(req, res) {
         await connection.commit();
 
         // ------------------------------------------
-        // 6. UPDATE SESSIE MET NIEUWE TEAM ID
+        // 6. UPDATE SESSION
         // ------------------------------------------
         if (req.session && req.session.user) {
             req.session.user.teamId = groupId;
@@ -105,12 +108,19 @@ module.exports = async function postHandler(req, res) {
             });
         }
 
+        // ------------------------------------------
+        // 7. RETURN (MET EXTRA INFO)
+        // ------------------------------------------
         return res.json({
             success: true,
             id: groupId,
             name: teamName,
             class: className,
-            image_url: publicUrl
+            image_url: publicUrl,
+
+            // 🔍 Debug return
+            savedFullPath: fullPath,
+            savedPublicUrl: publicUrl
         });
 
     } catch (err) {
