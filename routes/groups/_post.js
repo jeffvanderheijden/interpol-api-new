@@ -34,7 +34,7 @@ module.exports = async function postHandler(req, res) {
         const base64 = teamPhoto.replace(/^data:image\/\w+;base64,/, "");
         const fileName = `group_${Date.now()}.png`;
 
-        const uploadRoot = path.join(__dirname, "../../uploads/groups");
+        const uploadRoot = path.join(__dirname, "uploads/groups");
 
         if (!fs.existsSync(uploadRoot)) {
             fs.mkdirSync(uploadRoot, { recursive: true });

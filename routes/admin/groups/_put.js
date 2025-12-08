@@ -41,7 +41,7 @@ module.exports = async function putHandler(req, res) {
             const base64 = image_url.replace(/^data:image\/\w+;base64,/, "");
             const fileName = `group_${Date.now()}.png`;
 
-            const uploadRoot = path.join(__dirname, "../../uploads/groups");
+            const uploadRoot = path.join(__dirname, "uploads/groups");
             if (!fs.existsSync(uploadRoot)) {
                 fs.mkdirSync(uploadRoot, { recursive: true });
             }
