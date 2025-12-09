@@ -41,8 +41,10 @@ global.nodeLog = nodeLog;
 const allowedOrigins = [
   'http://localhost:5173',
   'https://localhost:5173',
+  'https://localhost:5174',
   'https://dashboard.heijden.sd-lab.nl',
-  'https://api.heijden.sd-lab.nl'
+  'https://api.heijden.sd-lab.nl',
+  'https://mazol.sd-lab.nl' // MAZOL platform, unrelated to interpol but used for auth.
 ];
 
 const corsOptions = {
