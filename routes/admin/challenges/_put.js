@@ -1,26 +1,34 @@
 const { pool } = require("./../../../database/database.js");
 
 module.exports = async function putHandler(req, res) {
-    const { id } = req.params; // challenge_id
+    const { id } = req.params; // challengeId
     const { className, is_open } = req.body;
 
-    if (!className || typeof is_open !== "boolean") {
-        return res.status(400).json({ error: "className en is_open verplicht" });
+    if (!className || typeof className !== "string") {
+        return res.status(400).json({ error: "className is verplicht." });
+    }
+    if (typeof is_open !== "boolean") {
+        return res.status(400).json({ error: "is_open moet true/false zijn." });
     }
 
     try {
+        // Upsert: bestaat record al? update, anders insert
         await pool.execute(
             `
-            INSERT INTO class_challenges (challenge_id, class, is_open)
+            INSERT INTO class_challenges (class, challenge_id, is_open)
             VALUES (?, ?, ?)
-            ON DUPLICATE KEY UPDATE is_open = ?
+            ON DUPLICATE KEY UPDATE is_open = VALUES(is_open)
             `,
-            [id, className, is_open ? 1 : 0, is_open ? 1 : 0]
+            [className, Number(id), is_open ? 1 : 0]
         );
 
-        res.json({ success: true });
+        return res.json({ success: true });
     } catch (err) {
-        console.error("Admin PUT challenge error:", err);
-        res.status(500).json({ error: "Server error" });
+        console.error("❌ Admin PUT /challenges/:id error:", err);
+        return res.status(500).json({
+            error: err.message,
+            code: err.code,
+            sql: err.sql
+        });
     }
 };
