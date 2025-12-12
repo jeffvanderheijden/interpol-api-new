@@ -91,10 +91,10 @@ app.use(
 // ------------------------------------------------------------
 const health = require('./routes/health');
 const authRoutes = require('./routes/auth');
-const challenges = require('./routes/challenges');
+const challenges = require('./routes/challenges/challenges');
 const groups = require('./routes/groups/groups');
 const adminGroups = require('./routes/admin/groups/groups');
-const students = require('./routes/students');
+const adminChallenges = require('./routes/admin/challenges/challenges');
 
 // Public routes
 app.use('/health', health);
@@ -103,10 +103,10 @@ app.use('/api', authRoutes);
 // Student routes
 app.use('/api/challenges', requireLogin, challenges);
 app.use('/api/groups', requireLogin, groups);
-app.use('/api/students', requireLogin, students);
 
 // Admin routes
 app.use('/api/admin/groups', requireLogin, requireTeacher, adminGroups);
+app.use('/api/admin/challenges', requireLogin, requireTeacher, adminChallenges);
 
 // ------------------------------------------------------------
 // Root fallback
