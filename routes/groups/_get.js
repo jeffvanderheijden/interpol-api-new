@@ -73,7 +73,7 @@ module.exports = async function getHandler(req, res) {
         );
 
         // ---------------------------
-        // 5. Optioneel: challenges ophalen
+        // 5. Challenges ophalen
         // ---------------------------
         const [challenges] = await pool.execute(
             `
@@ -82,7 +82,7 @@ module.exports = async function getHandler(req, res) {
                 gc.completed,
                 gc.points,
                 gc.point_deduction,
-                c.title
+                c.name
             FROM group_challenges gc
             JOIN challenges c ON c.id = gc.challenge_id
             WHERE gc.group_id = ?
