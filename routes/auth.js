@@ -32,7 +32,7 @@ router.post('/login', loginLimiter, async (req, res) => {
                 [gebruikersnaam]
             );
 
-            nodeLog(`[LOGIN] teamRows: ${JSON.stringify(teamRows)}`);
+            nodeLog(`[LOGIN] gebruikersnaam: ${gebruikersnaam}`);
 
             if (teamRows.length > 0) {
                 teamId = teamRows[0].group_id;
