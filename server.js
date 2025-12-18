@@ -44,7 +44,7 @@ const allowedOrigins = [
   'https://localhost:5174',
   'https://dashboard.heijden.sd-lab.nl',
   'https://api.heijden.sd-lab.nl',
-  'https://mazol.sd-lab.nl' // MAZOL platform, unrelated to interpol but used for auth.
+  'https://mazol.sd-lab.nl' // MAZOL platform, unrelated to Interpol but used for auth.
 ];
 
 const corsOptions = {

@@ -2,10 +2,10 @@ const { pool } = require("./../../../database/database.js");
 
 module.exports = async function putHandler(req, res) {
     const { id } = req.params; // challengeId
-    const { className, is_open } = req.body;
+    const { class_name, is_open } = req.body;
 
-    if (!className || typeof className !== "string") {
-        return res.status(400).json({ error: "className is verplicht." });
+    if (!class_name || typeof class_name !== "string") {
+        return res.status(400).json({ error: "class_name is verplicht." });
     }
     if (typeof is_open !== "boolean") {
         return res.status(400).json({ error: "is_open moet true/false zijn." });
@@ -19,7 +19,7 @@ module.exports = async function putHandler(req, res) {
             VALUES (?, ?, ?)
             ON DUPLICATE KEY UPDATE is_open = VALUES(is_open)
             `,
-            [className, Number(id), is_open ? 1 : 0]
+            [class_name, Number(id), is_open ? 1 : 0]
         );
 
         return res.json({ success: true });
