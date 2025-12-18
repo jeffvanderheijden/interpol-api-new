@@ -33,6 +33,7 @@ router.post('/login', loginLimiter, async (req, res) => {
             );
 
             if (teamRows.length > 0) {
+                nodeLog(`[LOGIN] User ${gebruikersnaam} is in team ${teamRows[0].group_id}`);
                 teamId = teamRows[0].group_id;
             }
         } catch (teamErr) {
@@ -47,7 +48,7 @@ router.post('/login', loginLimiter, async (req, res) => {
                 username: gebruikersnaam,
                 name: result.displayName || gebruikersnaam,
                 role: result.role || 'student',
-                teamId
+                teamId 
             };
 
             req.session.save(err2 => {
@@ -62,35 +63,8 @@ router.post('/login', loginLimiter, async (req, res) => {
 });
 
 
-router.get("/session", async (req, res) => {
-    if (!req.session.user) {
-        return res.json({ user: null });
-    }
-
-    let teamId = req.session.user.teamId;
-
-    if (!teamId && req.session.user.role === "student") {
-        const [rows] = await pool.execute(
-            `SELECT group_id 
-             FROM group_members 
-             WHERE student_number = ? 
-             LIMIT 1`,
-            [req.session.user.username]
-        );
-
-        if (rows.length) {
-            teamId = rows[0].group_id;
-            req.session.user.teamId = teamId;
-            await req.session.save();
-        }
-    }
-
-    res.json({
-        user: {
-            ...req.session.user,
-            teamId
-        }
-    });
+router.get('/session', (req, res) => {
+    res.json({ user: req.session?.user || null });
 });
 
 router.post('/logout', (req, res) => {
