@@ -32,8 +32,9 @@ router.post('/login', loginLimiter, async (req, res) => {
                 [gebruikersnaam]
             );
 
+            nodeLog(`[LOGIN] teamRows: ${JSON.stringify(teamRows)}`);
+
             if (teamRows.length > 0) {
-                nodeLog(`[LOGIN] User ${gebruikersnaam} is in team ${teamRows[0].group_id}`);
                 teamId = teamRows[0].group_id;
             }
         } catch (teamErr) {
