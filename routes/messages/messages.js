@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const getHandler = require("./get");
+const getHandler = require("./_get");
 
 router.get("/", getHandler);
 
