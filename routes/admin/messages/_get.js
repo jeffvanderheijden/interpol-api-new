@@ -9,14 +9,9 @@ module.exports = async function getHandler(req, res) {
       ORDER BY created_at DESC, id DESC
       `
         );
-
         return res.json({ success: true, messages: rows });
     } catch (err) {
         console.error("❌ GET /api/admin/messages error:", err);
-        return res.status(500).json({
-            success: false,
-            error: "Server error",
-            details: err.message,
-        });
+        return res.status(500).json({ success: false, error: "Server error", details: err.message });
     }
 };

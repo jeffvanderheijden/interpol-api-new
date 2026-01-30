@@ -2,7 +2,6 @@ const { pool } = require("./../../../database/database.js");
 const { upload, getMediaInfo } = require("./_upload");
 
 module.exports = async function postHandler(req, res) {
-    // multipart handler
     upload.single("media")(req, res, async (err) => {
         if (err) return res.status(400).json({ error: err.message || "Upload failed" });
 
@@ -16,10 +15,7 @@ module.exports = async function postHandler(req, res) {
             const { media_type, media_url } = getMediaInfo(req.file);
 
             await pool.execute(
-                `
-        INSERT INTO messages (title, body, media_type, media_url)
-        VALUES (?, ?, ?, ?)
-        `,
+                `INSERT INTO messages (title, body, media_type, media_url) VALUES (?, ?, ?, ?)`,
                 [title, body, media_type, media_url]
             );
 

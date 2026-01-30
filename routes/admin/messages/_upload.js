@@ -15,7 +15,8 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-    const ok = file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/");
+    const ok =
+        file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/");
     cb(ok ? null : new Error("Unsupported media type"), ok);
 };
 
@@ -32,4 +33,4 @@ function getMediaInfo(file) {
     return { media_type, media_url };
 }
 
-module.exports = { upload, getMediaInfo, UPLOAD_DIR };
+module.exports = { upload, getMediaInfo };
