@@ -20,6 +20,9 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 const PORT = process.env.PORT || 3000;
 
+// Use uploads folder for static files
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // ------------------------------------------------------------
 // Debug Logger
 // ------------------------------------------------------------
@@ -95,6 +98,8 @@ const challenges = require('./routes/challenges/challenges');
 const groups = require('./routes/groups/groups');
 const adminGroups = require('./routes/admin/groups/groups');
 const adminChallenges = require('./routes/admin/challenges/challenges');
+const adminMessages = require("./routes/admin/messages/messages");
+const messages = require("./routes/messages/messages");
 
 // Public routes
 app.use('/health', health);
@@ -103,10 +108,12 @@ app.use('/api', authRoutes);
 // Student routes
 app.use('/api/challenges', requireLogin, challenges);
 app.use('/api/groups', requireLogin, groups);
+app.use("/api/messages", requireLogin, messages);
 
 // Admin routes
 app.use('/api/admin/groups', requireLogin, requireTeacher, adminGroups);
 app.use('/api/admin/challenges', requireLogin, requireTeacher, adminChallenges);
+app.use("/api/admin/messages", requireLogin, requireTeacher, adminMessages);
 
 // ------------------------------------------------------------
 // Root fallback
