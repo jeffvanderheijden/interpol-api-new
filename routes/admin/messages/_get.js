@@ -4,7 +4,7 @@ module.exports = async function getHandler(req, res) {
     try {
         const [rows] = await pool.execute(
             `
-      SELECT id, title, body, media_type, media_url, created_at, updated_at
+      SELECT id, title, body, media_type, media_url, publish_at, created_at, updated_at
       FROM messages
       ORDER BY created_at DESC, id DESC
       `
