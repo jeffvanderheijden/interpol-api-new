@@ -22,7 +22,7 @@ const PORT = process.env.PORT || 3000;
 
 // Use uploads folder for static files
 const UPLOADS_PATH = path.join(__dirname, "uploads");
-app.use("/uploads", express.static(UPLOADS_PATH));
+app.use("/api/uploads", express.static(UPLOADS_PATH));
 
 // ------------------------------------------------------------
 // Debug Logger
@@ -47,8 +47,7 @@ const allowedOrigins = [
   'https://localhost:5173',
   'https://localhost:5174',
   'https://dashboard.heijden.sd-lab.nl',
-  'https://api.heijden.sd-lab.nl',
-  'https://mazol.sd-lab.nl' // MAZOL platform, unrelated to Interpol but used for auth.
+  'https://api.heijden.sd-lab.nl'
 ];
 
 const corsOptions = {
