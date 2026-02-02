@@ -21,7 +21,8 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 const PORT = process.env.PORT || 3000;
 
 // Use uploads folder for static files
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+const UPLOADS_PATH = path.join(__dirname, "uploads");
+app.use("/uploads", express.static(UPLOADS_PATH));
 
 // ------------------------------------------------------------
 // Debug Logger
