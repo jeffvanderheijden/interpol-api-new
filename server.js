@@ -22,7 +22,7 @@ const PORT = process.env.PORT || 3000;
 
 // Use uploads folder for static files
 const UPLOADS_PATH = path.join(__dirname, "uploads");
-app.use("/api/uploads", express.static(UPLOADS_PATH));
+app.use("/uploads", express.static(UPLOADS_PATH));
 
 // ------------------------------------------------------------
 // Debug Logger
