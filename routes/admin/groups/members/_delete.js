@@ -1,7 +1,11 @@
 const { pool } = require("../../../../database/database.js");
+const { sendOk, sendError } = require("../../../../utils/response");
+const { logError } = require("../../../../utils/log");
+const { parseIdParam } = require("../../../../utils/parse");
 
 module.exports = async function deleteMember(req, res) {
-    const memberId = Number(req.params.mid);
+    const memberId = parseIdParam(req, "mid");
+    if (!memberId) return sendError(res, 400, "Invalid id");
 
     try {
         await pool.execute(
@@ -9,10 +13,10 @@ module.exports = async function deleteMember(req, res) {
             [memberId]
         );
 
-        res.json({ success: true });
+        return sendOk(res);
 
     } catch (err) {
-        console.error("Admin delete member error:", err);
-        res.status(500).json({ success: false });
+        logError("Admin delete member", err);
+        return sendError(res, 500, "Server error");
     }
 };

@@ -3,6 +3,9 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const ldapAuthenticate = require('./../auth/ldapAuth');
 const { pool } = require('./../database/database.js');
+const { sendOk, sendError } = require("./../utils/response");
+const { logError } = require("./../utils/log");
+const { config } = require("./../config");
 
 const loginLimiter = rateLimit({
     windowMs: 1 * 60 * 1000,   // 1 minuut
@@ -13,12 +16,12 @@ const loginLimiter = rateLimit({
 router.post('/login', loginLimiter, async (req, res) => {
     const { gebruikersnaam, wachtwoord } = req.body || {};
     if (!gebruikersnaam || !wachtwoord) {
-        return res.status(400).json({ error: 'Gebruikersnaam en wachtwoord zijn verplicht' });
+        return sendError(res, 400, "Gebruikersnaam en wachtwoord zijn verplicht");
     }
 
     try {
         const result = await ldapAuthenticate(gebruikersnaam, wachtwoord, req.session);
-        if (result.error) return res.status(401).json({ message: result.error });
+        if (result.error) return sendError(res, 401, result.error);
 
         // Check of gebruiker al in een team zit
         let teamId = null;
@@ -36,12 +39,12 @@ router.post('/login', loginLimiter, async (req, res) => {
                 teamId = teamRows[0].group_id;
             }
         } catch (teamErr) {
-            console.error("Kon teamId niet ophalen:", teamErr);
+            logError("Auth team lookup", teamErr);
         }
 
         // prevent session fixation + ensure cookie is persisted before responding
         req.session.regenerate(err => {
-            if (err) return res.status(500).json({ error: 'Interne serverfout (sessie)' });
+            if (err) return sendError(res, 500, "Interne serverfout (sessie)");
 
             req.session.user = {
                 username: gebruikersnaam,
@@ -51,32 +54,32 @@ router.post('/login', loginLimiter, async (req, res) => {
             };
 
             req.session.save(err2 => {
-                if (err2) return res.status(500).json({ error: 'Interne serverfout (opslaan sessie)' });
-                return res.json({ message: 'Ingelogd', user: req.session.user });
+                if (err2) return sendError(res, 500, "Interne serverfout (opslaan sessie)");
+                return sendOk(res, { user: req.session.user });
             });
         });
     } catch (err) {
-        console.error('LDAP auth failed:', err);
-        return res.status(500).json({ error: 'Interne serverfout' });
+        logError("LDAP auth failed", err);
+        return sendError(res, 500, "Interne serverfout");
     }
 });
 
 
 router.get('/session', (req, res) => {
-    res.json({ user: req.session?.user || null });
+    return sendOk(res, { user: req.session?.user || null });
 });
 
 router.post('/logout', (req, res) => {
     req.session.destroy(err => {
-        if (err) return res.status(500).json({ error: 'Kon niet uitloggen' });
+        if (err) return sendError(res, 500, "Kon niet uitloggen");
         res.clearCookie('connect.sid', {
-            domain: '.heijden.sd-lab.nl',
+            domain: config.sessionCookieDomain,
             path: '/',
             httpOnly: true,
             secure: true,
             sameSite: 'none'
         });
-        res.json({ message: 'Uitgelogd' });
+        return sendOk(res);
     });
 });
 

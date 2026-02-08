@@ -6,6 +6,8 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const requireLogin = require('./middleware/authRequired');
 const requireTeacher = require('./middleware/teacherRequired');
+const { logError } = require("./utils/log");
+const { config } = require("./config");
 
 // ------------------------------------------------------------
 // Load environment variables 
@@ -18,7 +20,7 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-const PORT = process.env.PORT || 3000;
+const PORT = config.port;
 
 // Use uploads folder for static files
 const UPLOADS_PATH = path.join(__dirname, "uploads");
@@ -42,17 +44,9 @@ global.nodeLog = nodeLog;
 // ------------------------------------------------------------
 // CORS
 // ------------------------------------------------------------
-const allowedOrigins = [
-  'http://localhost:5173',
-  'https://localhost:5173',
-  'https://localhost:5174',
-  'https://dashboard.heijden.sd-lab.nl',
-  'https://api.heijden.sd-lab.nl'
-];
-
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || config.corsAllowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -75,13 +69,13 @@ app.set('trust proxy', 1);
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: config.sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 4,
-      domain: '.heijden.sd-lab.nl',
+      domain: config.sessionCookieDomain,
       secure: true,
       sameSite: 'none',
       path: '/',
@@ -126,10 +120,9 @@ app.get('/', (req, res) => {
 // Global error handler
 // ------------------------------------------------------------
 app.use((err, req, res, next) => {
-  console.error("GLOBAL ERROR HANDLER:", err);
+  logError("GLOBAL ERROR HANDLER", err);
   res.status(500).json({
-    error: err.message,
-    stack: err.stack
+    error: "Server error"
   });
 });
 

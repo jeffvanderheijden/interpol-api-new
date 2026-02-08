@@ -1,7 +1,11 @@
 const { pool } = require("./../../../database/database.js");
+const { sendOk, sendError } = require("./../../../utils/response");
+const { logError } = require("./../../../utils/log");
+const { parseIdParam } = require("./../../../utils/parse");
 
 module.exports = async function deleteHandler(req, res) {
-    const { id } = req.params;
+    const id = parseIdParam(req, "id");
+    if (!id) return sendError(res, 400, "Invalid id");
 
     try {
         await pool.execute(
@@ -9,9 +13,9 @@ module.exports = async function deleteHandler(req, res) {
             [id]
         );
 
-        res.json({ success: true });
+        return sendOk(res);
     } catch (err) {
-        console.error("Admin DELETE group error:", err);
-        res.status(500).json({ error: "Server error" });
+        logError("Admin DELETE group", err);
+        return sendError(res, 500, "Server error");
     }
 };

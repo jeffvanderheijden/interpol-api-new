@@ -1,7 +1,11 @@
 const { pool } = require("../../../../database/database.js");
+const { sendOk, sendError } = require("../../../../utils/response");
+const { logError } = require("../../../../utils/log");
+const { parseIdParam } = require("../../../../utils/parse");
 
 module.exports = async function addMember(req, res) {
-    const groupId = Number(req.params.id);
+    const groupId = parseIdParam(req, "id");
+    if (!groupId) return sendError(res, 400, "Invalid id");
     const { name, student_number } = req.body;
 
     try {
@@ -10,8 +14,7 @@ module.exports = async function addMember(req, res) {
             VALUES (?, ?, ?)
         `, [groupId, name, student_number]);
 
-        res.json({
-            success: true,
+        return sendOk(res, {
             member: {
                 id: r.insertId,
                 name,
@@ -19,7 +22,7 @@ module.exports = async function addMember(req, res) {
             }
         });
     } catch (err) {
-        console.error("Admin add member error:", err);
-        res.status(500).json({ success: false });
+        logError("Admin add member", err);
+        return sendError(res, 500, "Server error");
     }
 };

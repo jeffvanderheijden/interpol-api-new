@@ -1,9 +1,9 @@
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+const { config } = require("./../../../config");
 
-const PROJECT_ROOT = path.resolve(__dirname, "../../../");
-const UPLOAD_DIR = path.join(PROJECT_ROOT, "uploads", "messages");
+const UPLOAD_DIR = config.uploadsMessagesDir;
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 

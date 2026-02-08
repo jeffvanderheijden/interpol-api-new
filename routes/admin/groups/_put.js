@@ -1,31 +1,34 @@
 const fs = require("fs");
 const path = require("path");
 const { pool } = require("./../../../database/database.js");
+const { config } = require("./../../../config");
+const { sendOk, sendError } = require("./../../../utils/response");
+const { isNonEmptyString } = require("./../../../utils/validate");
+const { logError } = require("./../../../utils/log");
+const { parseIdParam } = require("./../../../utils/parse");
 
 module.exports = async function putHandler(req, res) {
-    const { id } = req.params;
+    const id = parseIdParam(req, "id");
+    if (!id) return sendError(res, 400, "Invalid id");
     const { name, className, image_url } = req.body;
 
     const fields = [];
     const values = [];
 
-    let savedFullPath = null;
-    let savedPublicUrl = null;
-
     // ------------------------------------------
     // 1. TEAMNAAM & KLAS (partial update)
     // ------------------------------------------
     if (name !== undefined) {
-        if (!name.trim()) {
-            return res.status(400).json({ error: "Teamnaam mag niet leeg zijn." });
+        if (!isNonEmptyString(name)) {
+            return sendError(res, 400, "Teamnaam mag niet leeg zijn.");
         }
         fields.push("name = ?");
         values.push(name);
     }
 
     if (className !== undefined) {
-        if (!className.trim()) {
-            return res.status(400).json({ error: "Klas mag niet leeg zijn." });
+        if (!isNonEmptyString(className)) {
+            return sendError(res, 400, "Klas mag niet leeg zijn.");
         }
         fields.push("class = ?");
         values.push(className);
@@ -43,7 +46,7 @@ module.exports = async function putHandler(req, res) {
             const fileName = `group_${Date.now()}.png`;
 
             // FIXED PATH!!
-            const uploadRoot = path.join(process.cwd(), "uploads/groups");
+            const uploadRoot = config.uploadsGroupsDir;
 
             if (!fs.existsSync(uploadRoot)) {
                 fs.mkdirSync(uploadRoot, { recursive: true });
@@ -54,11 +57,7 @@ module.exports = async function putHandler(req, res) {
             // Save the file
             fs.writeFileSync(fullPath, base64, "base64");
 
-            const baseUrl = process.env.API_BASE_URL || "https://api.heijden.sd-lab.nl";
-            const publicUrl = `${baseUrl}/uploads/groups/${fileName}`;
-
-            savedFullPath = fullPath;
-            savedPublicUrl = publicUrl;
+            const publicUrl = `${config.apiBaseUrl}/uploads/groups/${fileName}`;
 
             fields.push("image_url = ?");
             values.push(publicUrl);
@@ -70,7 +69,7 @@ module.exports = async function putHandler(req, res) {
     }
 
     if (fields.length === 0) {
-        return res.status(400).json({ error: "Geen wijzigingen ontvangen." });
+        return sendError(res, 400, "Geen wijzigingen ontvangen.");
     }
 
     try {
@@ -81,17 +80,10 @@ module.exports = async function putHandler(req, res) {
             values
         );
 
-        return res.json({
-            success: true,
-            savedFullPath,   
-            savedPublicUrl   
-        });
+        return sendOk(res);
 
     } catch (err) {
-        console.error("Admin PUT group error:", err);
-        res.status(500).json({
-            error: "Server error",
-            details: err.message
-        });
+        logError("Admin PUT group", err);
+        return sendError(res, 500, "Server error");
     }
 };

@@ -1,14 +1,18 @@
 const { pool } = require("./../../../database/database.js");
+const { sendOk, sendError } = require("./../../../utils/response");
+const { logError } = require("./../../../utils/log");
+const { parseIdParam } = require("./../../../utils/parse");
 
 module.exports = async function putHandler(req, res) {
-    const { id } = req.params; // challengeId
+    const id = parseIdParam(req, "id"); // challengeId
+    if (!id) return sendError(res, 400, "Invalid id");
     const { class_name, is_open } = req.body;
 
     if (!class_name || typeof class_name !== "string") {
-        return res.status(400).json({ error: "class_name is verplicht." });
+        return sendError(res, 400, "class_name is verplicht.");
     }
     if (typeof is_open !== "boolean") {
-        return res.status(400).json({ error: "is_open moet true/false zijn." });
+        return sendError(res, 400, "is_open moet true/false zijn.");
     }
 
     try {
@@ -19,16 +23,12 @@ module.exports = async function putHandler(req, res) {
             VALUES (?, ?, ?)
             ON DUPLICATE KEY UPDATE is_open = VALUES(is_open)
             `,
-            [class_name, Number(id), is_open ? 1 : 0]
+            [class_name, id, is_open ? 1 : 0]
         );
 
-        return res.json({ success: true });
+        return sendOk(res);
     } catch (err) {
-        console.error("❌ Admin PUT /challenges/:id error:", err);
-        return res.status(500).json({
-            error: err.message,
-            code: err.code,
-            sql: err.sql
-        });
+        logError("Admin PUT /challenges/:id", err);
+        return sendError(res, 500, "Server error");
     }
 };

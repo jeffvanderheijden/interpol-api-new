@@ -1,7 +1,11 @@
 const { pool } = require("../../../../database/database.js");
+const { sendOk, sendError } = require("../../../../utils/response");
+const { logError } = require("../../../../utils/log");
+const { parseIdParam } = require("../../../../utils/parse");
 
 module.exports = async function updateMember(req, res) {
-    const memberId = Number(req.params.mid);
+    const memberId = parseIdParam(req, "mid");
+    if (!memberId) return sendError(res, 400, "Invalid id");
     const { name, student_number } = req.body;
 
     try {
@@ -11,10 +15,10 @@ module.exports = async function updateMember(req, res) {
             WHERE id = ?
         `, [name, student_number, memberId]);
 
-        res.json({ success: true });
+        return sendOk(res);
 
     } catch (err) {
-        console.error("Admin update member error:", err);
-        res.status(500).json({ success: false });
+        logError("Admin update member", err);
+        return sendError(res, 500, "Server error");
     }
 };

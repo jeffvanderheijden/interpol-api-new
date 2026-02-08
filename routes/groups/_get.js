@@ -1,11 +1,14 @@
 const { pool } = require("./../../database/database.js");
+const { sendOk, sendError } = require("./../../utils/response");
+const { parseIdParam } = require("./../../utils/parse");
+const { logError } = require("./../../utils/log");
 
 module.exports = async function getHandler(req, res) {
-    const groupId = Number(req.params.id);
+    const groupId = parseIdParam(req, "id");
 
     // Geen groupId → fout
     if (!groupId) {
-        return res.status(400).json({ error: "Invalid team id" });
+        return sendError(res, 400, "Invalid team id");
     }
 
     // Security: studenten mogen ALLEEN hun eigen team-dashboard bekijken
@@ -13,7 +16,7 @@ module.exports = async function getHandler(req, res) {
         const user = req.session?.user;
 
         if (!user) {
-            return res.status(401).json({ error: "Unauthorized" });
+            return sendError(res, 401, "Unauthorized");
         }
 
         // STUDENT → check of route teamId gelijk is aan session teamId
@@ -21,16 +24,14 @@ module.exports = async function getHandler(req, res) {
             const sessionTeamId = Number(user.teamId);
 
             if (sessionTeamId !== groupId) {
-                return res.status(403).json({
-                    error: "Forbidden: cannot access another team's dashboard"
-                });
+                return sendError(res, 403, "Forbidden");
             }
         }
 
         // DOCENT → volledige toegang (geen restricties)
     } catch (authErr) {
-        console.error("Auth error:", authErr);
-        return res.status(500).json({ error: "Server error (auth)" });
+        logError("Auth error", authErr);
+        return sendError(res, 500, "Server error");
     }
 
     // ---------------------------
@@ -52,7 +53,7 @@ module.exports = async function getHandler(req, res) {
         );
 
         if (teamRows.length === 0) {
-            return res.status(404).json({ error: "Team not found" });
+            return sendError(res, 404, "Team not found");
         }
 
         const team = teamRows[0];
@@ -91,19 +92,10 @@ module.exports = async function getHandler(req, res) {
             [groupId]
         );
 
-        return res.json({
-            success: true,
-            team,
-            members,
-            challenges
-        });
+        return sendOk(res, { team, members, challenges });
 
     } catch (err) {
-        console.error("❌ GET /api/groups/:id error:", err);
-        return res.status(500).json({
-            success: false,
-            error: "Server error",
-            details: err.message
-        });
+        logError("GET /api/groups/:id", err);
+        return sendError(res, 500, "Server error");
     }
 };

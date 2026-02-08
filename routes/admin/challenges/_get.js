@@ -1,4 +1,6 @@
 const { pool } = require("./../../../database/database.js");
+const { sendOk, sendError } = require("./../../../utils/response");
+const { logError } = require("./../../../utils/log");
 
 module.exports = async function getHandler(req, res) {
     try {
@@ -48,17 +50,9 @@ module.exports = async function getHandler(req, res) {
             };
         });
 
-        return res.json({
-            success: true,
-            classes,
-            challenges
-        });
+        return sendOk(res, { classes, challenges });
     } catch (err) {
-        console.error("❌ Admin GET /challenges error:", err);
-        return res.status(500).json({
-            error: err.message,
-            code: err.code,
-            sql: err.sql
-        });
+        logError("Admin GET /challenges", err);
+        return sendError(res, 500, "Server error");
     }
 };

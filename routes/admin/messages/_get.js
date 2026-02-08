@@ -1,4 +1,6 @@
 const { pool } = require("./../../../database/database.js");
+const { sendOk, sendError } = require("./../../../utils/response");
+const { logError } = require("./../../../utils/log");
 
 module.exports = async function getHandler(req, res) {
     try {
@@ -9,9 +11,9 @@ module.exports = async function getHandler(req, res) {
       ORDER BY created_at DESC, id DESC
       `
         );
-        return res.json({ success: true, messages: rows });
+        return sendOk(res, { messages: rows });
     } catch (err) {
-        console.error("❌ GET /api/admin/messages error:", err);
-        return res.status(500).json({ success: false, error: "Server error", details: err.message });
+        logError("GET /api/admin/messages", err);
+        return sendError(res, 500, "Server error");
     }
 };

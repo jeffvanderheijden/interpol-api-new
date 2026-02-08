@@ -1,8 +1,10 @@
 const { pool } = require("./../../database/database.js");
+const { sendOk, sendError } = require("./../../utils/response");
+const { logError } = require("./../../utils/log");
 
 module.exports = async function getHandler(req, res) {
     const user = req.session?.user;
-    if (!user) return res.status(401).json({ error: "Unauthorized" });
+    if (!user) return sendError(res, 401, "Unauthorized");
 
     try {
         const [rows] = await pool.execute(
@@ -14,13 +16,9 @@ module.exports = async function getHandler(req, res) {
             `
         );
 
-        return res.json({ success: true, messages: rows });
+        return sendOk(res, { messages: rows });
     } catch (err) {
-        console.error("❌ GET /api/messages error:", err);
-        return res.status(500).json({
-            success: false,
-            error: "Server error",
-            details: err.message,
-        });
+        logError("GET /api/messages", err);
+        return sendError(res, 500, "Server error");
     }
 };

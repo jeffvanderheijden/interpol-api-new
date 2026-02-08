@@ -2,6 +2,11 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { pool } = require("./../../../database/database.js");
+const { config } = require("./../../../config");
+const { withTransaction } = require("./../../../utils/db");
+const { sendOk, sendError } = require("./../../../utils/response");
+const { isNonEmptyString } = require("./../../../utils/validate");
+const { logError } = require("./../../../utils/log");
 
 module.exports = async function postHandler(req, res) {
     const { teamPhoto, teamName, className, members } = req.body;
@@ -10,112 +15,80 @@ module.exports = async function postHandler(req, res) {
     // VALIDATIE
     // ------------------------------------------
     if (!teamPhoto) {
-        return res.status(400).json({ error: "Teamfoto ontbreekt." });
+        return sendError(res, 400, "Teamfoto ontbreekt.");
     }
-    if (!teamName || !teamName.trim()) {
-        return res.status(400).json({ error: "Teamnaam ontbreekt." });
+    if (!isNonEmptyString(teamName)) {
+        return sendError(res, 400, "Teamnaam ontbreekt.");
     }
-    if (!className || !className.trim()) {
-        return res.status(400).json({ error: "Klas ontbreekt." });
+    if (!isNonEmptyString(className)) {
+        return sendError(res, 400, "Klas ontbreekt.");
     }
     if (!Array.isArray(members) || members.length < 3) {
-        return res.status(400).json({ error: "Minimaal 3 teamleden vereist." });
+        return sendError(res, 400, "Minimaal 3 teamleden vereist.");
     }
 
-    let connection;
-
     try {
-        connection = await pool.getConnection();
-        await connection.beginTransaction();
+        const { groupId, publicUrl } = await withTransaction(pool, async (connection) => {
+            // 1. FOTO OPSLAAN
+            const base64 = teamPhoto.split(",")[1];
+            const fileName = `group_${Date.now()}.png`;
+            const uploadRoot = config.uploadsGroupsDir;
 
-        // ------------------------------------------
-        // 1. FOTO OPSLAAN (GEFIXT & CONSISTENT)
-        // ------------------------------------------
-        const base64 = teamPhoto.split(",")[1];
-        const fileName = `group_${Date.now()}.png`;
+            if (!fs.existsSync(uploadRoot)) {
+                fs.mkdirSync(uploadRoot, { recursive: true });
+            }
 
-        const uploadRoot = path.join(process.cwd(), "uploads/groups");
+            const fullPath = path.join(uploadRoot, fileName);
+            fs.writeFileSync(fullPath, base64, "base64");
 
-        if (!fs.existsSync(uploadRoot)) {
-            fs.mkdirSync(uploadRoot, { recursive: true });
-        }
+            const publicUrl = `${config.apiBaseUrl}/uploads/groups/${fileName}`;
 
-        const fullPath = path.join(uploadRoot, fileName);
-        fs.writeFileSync(fullPath, base64, "base64");
-
-        const baseUrl = process.env.API_BASE_URL || "https://api.heijden.sd-lab.nl";
-        const publicUrl = `${baseUrl}/uploads/groups/${fileName}`;
-
-        // ------------------------------------------
-        // 2. TEAM AANMAKEN
-        // ------------------------------------------
-        const [groupRes] = await connection.execute(
-            `INSERT INTO groups (name, class, image_url, created_at)
-             VALUES (?, ?, ?, NOW())`,
-            [teamName, className, publicUrl]
-        );
-
-        const groupId = groupRes.insertId;
-
-        // ------------------------------------------
-        // 3. TEAMLEDEN OPSLAAN
-        // ------------------------------------------
-        for (const m of members) {
-            await connection.execute(
-                `INSERT INTO group_members (group_id, name, student_number)
-                 VALUES (?, ?, ?)`,
-                [groupId, m.name, m.number]
+            // 2. TEAM AANMAKEN
+            const [groupRes] = await connection.execute(
+                `INSERT INTO groups (name, class, image_url, created_at)
+                 VALUES (?, ?, ?, NOW())`,
+                [teamName, className, publicUrl]
             );
-        }
 
-        // ------------------------------------------
-        // 4. ACTIEVE CHALLENGES KOPPELEN
-        // ------------------------------------------
-        const [challenges] = await connection.execute(
-            `SELECT id FROM challenges WHERE is_active = 1`
-        );
+            const groupId = groupRes.insertId;
 
-        for (const c of challenges) {
-            const keycode = crypto.randomBytes(8).toString("hex");
+            // 3. TEAMLEDEN OPSLAAN
+            for (const m of members) {
+                await connection.execute(
+                    `INSERT INTO group_members (group_id, name, student_number)
+                     VALUES (?, ?, ?)`,
+                    [groupId, m.name, m.number]
+                );
+            }
 
-            await connection.execute(
-                `INSERT INTO group_challenges
-                    (group_id, challenge_id, completed, points, point_deduction, keycode)
-                 VALUES (?, ?, 0, NULL, 0, ?)`,
-                [groupId, c.id, keycode]
+            // 4. ACTIEVE CHALLENGES KOPPELEN
+            const [challenges] = await connection.execute(
+                `SELECT id FROM challenges WHERE is_active = 1`
             );
-        }
 
-        await connection.commit();
+            for (const c of challenges) {
+                const keycode = crypto.randomBytes(8).toString("hex");
 
-        // ------------------------------------------
-        // 5. RETURN (INCL. DEBUG INFO)
-        // ------------------------------------------
-        return res.json({
-            success: true,
+                await connection.execute(
+                    `INSERT INTO group_challenges
+                        (group_id, challenge_id, completed, points, point_deduction, keycode)
+                     VALUES (?, ?, 0, NULL, 0, ?)`,
+                    [groupId, c.id, keycode]
+                );
+            }
+
+            return { groupId, publicUrl };
+        });
+
+        return sendOk(res, {
             id: groupId,
             name: teamName,
             class: className,
             image_url: publicUrl,
-
-            savedFilePath: fullPath,
-            savedPublicUrl: publicUrl
         });
 
     } catch (err) {
-        console.error("Admin POST /groups ERROR:", err);
-
-        if (connection) {
-            try { await connection.rollback(); }
-            catch (rbErr) { console.error("Rollback error:", rbErr); }
-        }
-
-        return res.status(500).json({
-            error: err.message,
-            sql: err.sql,
-            sqlMessage: err.sqlMessage
-        });
-    } finally {
-        if (connection) connection.release();
+        logError("Admin POST /groups", err);
+        return sendError(res, 500, "Server error");
     }
 };

@@ -3,6 +3,6 @@ const router = express.Router();
 
 const getHandler = require("./_get.js");
 
-router.get("/:id", getHandler);
+router.get("/", getHandler);
 
 module.exports = router;
