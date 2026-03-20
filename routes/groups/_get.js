@@ -2,6 +2,7 @@ const { pool } = require("./../../database/database.js");
 const { sendOk, sendError } = require("./../../utils/response");
 const { parseIdParam } = require("./../../utils/parse");
 const { logError } = require("./../../utils/log");
+const { getSessionUser } = require("./../../utils/session");
 
 module.exports = async function getHandler(req, res) {
     const groupId = parseIdParam(req, "id");
@@ -13,7 +14,7 @@ module.exports = async function getHandler(req, res) {
 
     // Security: studenten mogen ALLEEN hun eigen team-dashboard bekijken
     try {
-        const user = req.session?.user;
+        const user = getSessionUser(req);
 
         if (!user) {
             return sendError(res, 401, "Unauthorized");

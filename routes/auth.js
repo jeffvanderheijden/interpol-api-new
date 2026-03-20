@@ -6,12 +6,26 @@ const { pool } = require('./../database/database.js');
 const { sendOk, sendError } = require("./../utils/response");
 const { logError } = require("./../utils/log");
 const { config } = require("./../config");
+const { getSessionUser, saveSession } = require("./../utils/session");
 
 const loginLimiter = rateLimit({
     windowMs: 1 * 60 * 1000,   // 1 minuut
     max: 15,                   // 15 pogingen
     message: { error: 'Te veel mislukte pogingen, probeer later opnieuw.' }
 });
+
+function regenerateSession(req) {
+    return new Promise((resolve, reject) => {
+        req.session.regenerate((err) => {
+            if (err) {
+                reject(err);
+                return;
+            }
+
+            resolve();
+        });
+    });
+}
 
 router.post('/login', loginLimiter, async (req, res) => {
     const { gebruikersnaam, wachtwoord } = req.body || {};
@@ -42,22 +56,18 @@ router.post('/login', loginLimiter, async (req, res) => {
             logError("Auth team lookup", teamErr);
         }
 
-        // prevent session fixation + ensure cookie is persisted before responding
-        req.session.regenerate(err => {
-            if (err) return sendError(res, 500, "Interne serverfout (sessie)");
+        await regenerateSession(req);
 
-            req.session.user = {
-                username: gebruikersnaam,
-                name: result.displayName || gebruikersnaam,
-                role: result.role || 'student',
-                teamId 
-            };
+        req.session.user = {
+            username: gebruikersnaam,
+            name: result.displayName || gebruikersnaam,
+            role: result.role || 'student',
+            teamId,
+        };
 
-            req.session.save(err2 => {
-                if (err2) return sendError(res, 500, "Interne serverfout (opslaan sessie)");
-                return sendOk(res, { user: req.session.user });
-            });
-        });
+        await saveSession(req);
+
+        return sendOk(res, { user: req.session.user });
     } catch (err) {
         logError("LDAP auth failed", err);
         return sendError(res, 500, "Interne serverfout");
@@ -66,7 +76,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
 
 router.get('/session', (req, res) => {
-    return sendOk(res, { user: req.session?.user || null });
+    return sendOk(res, { user: getSessionUser(req) });
 });
 
 router.post('/logout', (req, res) => {

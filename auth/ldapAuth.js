@@ -1,17 +1,5 @@
-// auth/ldapAuth.js
-const fs = require("fs");
-const path = require("path");
 const ldap = require("ldapjs");
-
-const logFile = path.join(__dirname, "..", "ldap-debug-node.log");
-
-function nodeLog(msg) {
-    const line = `[${new Date().toISOString()}] ${msg}\n`;
-    try {
-        fs.appendFileSync(logFile, line);
-    } catch { }
-    process.stdout.write(line);
-}
+const { nodeLog } = require("../utils/nodeLog");
 
 function searchAsync(client, base, username) {
     return new Promise((resolve, reject) => {

@@ -1,96 +1,36 @@
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
-const { pool } = require("./../../database/database.js");
-const { config } = require("./../../config");
-const { withTransaction } = require("./../../utils/db");
 const { sendOk, sendError } = require("./../../utils/response");
-const { isNonEmptyString } = require("./../../utils/validate");
 const { logError } = require("./../../utils/log");
+const { saveSession } = require("./../../utils/session");
+const {
+    createGroupWithMembers,
+    validateGroupPayload,
+} = require("./../../services/groups");
 
 module.exports = async function postHandler(req, res) {
     const { teamPhoto, members, teamName, className } = req.body;
+    const validationError = validateGroupPayload({
+        teamPhoto,
+        teamName,
+        className,
+        members,
+    });
 
-    // ------------------------------------------
-    // VALIDATIE
-    // ------------------------------------------
-    if (!teamPhoto) {
-        return sendError(res, 400, "Teamfoto ontbreekt.");
-    }
-    if (!isNonEmptyString(teamName)) {
-        return sendError(res, 400, "Teamnaam ontbreekt.");
-    }
-    if (!isNonEmptyString(className)) {
-        return sendError(res, 400, "Klas ontbreekt.");
-    }
-    if (!members || members.length < 3) {
-        return sendError(res, 400, "Minimaal 3 teamleden vereist.");
+    if (validationError) {
+        return sendError(res, 400, validationError);
     }
 
     try {
-        const { groupId, publicUrl } = await withTransaction(pool, async (connection) => {
-            // 1. FOTO OPSLAAN
-            const base64 = teamPhoto.split(",")[1];
-            const fileName = `group_${Date.now()}.png`;
-            const uploadRoot = config.uploadsGroupsDir;
-
-            if (!fs.existsSync(uploadRoot)) {
-                fs.mkdirSync(uploadRoot, { recursive: true });
-            }
-
-            const fullPath = path.join(uploadRoot, fileName);
-            fs.writeFileSync(fullPath, base64, "base64");
-
-            const publicUrl = `${config.apiBaseUrl}/uploads/groups/${fileName}`;
-
-            // 2. TEAM AANMAKEN
-            const [groupRes] = await connection.execute(
-                `INSERT INTO groups (name, image_url, class, created_at)
-                 VALUES (?, ?, ?, NOW())`,
-                [teamName, publicUrl, className]
-            );
-
-            const groupId = groupRes.insertId;
-
-            // 3. TEAMLEDEN OPSLAAN
-            for (const m of members) {
-                await connection.execute(
-                    `INSERT INTO group_members (group_id, name, student_number)
-                     VALUES (?, ?, ?)`,
-                    [groupId, m.name, m.number]
-                );
-            }
-
-            // 4. ACTIEVE CHALLENGES OPHALEN
-            const [challenges] = await connection.execute(
-                `SELECT id FROM challenges WHERE is_active = 1`
-            );
-
-            // 5. RELATIES VOOR CHALLENGES AANMAKEN
-            for (const c of challenges) {
-                const keycode = crypto.randomBytes(8).toString("hex");
-
-                await connection.execute(
-                    `INSERT INTO group_challenges
-                        (group_id, challenge_id, completed, points, point_deduction, keycode)
-                     VALUES (?, ?, 0, NULL, 0, ?)`,
-                    [groupId, c.id, keycode]
-                );
-            }
-
-            return { groupId, publicUrl };
+        const { groupId, publicUrl } = await createGroupWithMembers({
+            teamPhoto,
+            teamName,
+            className,
+            members,
         });
 
         // 6. UPDATE SESSION
         if (req.session && req.session.user) {
             req.session.user.teamId = groupId;
-
-            await new Promise((resolve, reject) => {
-                req.session.save(err => {
-                    if (err) reject(err);
-                    else resolve();
-                });
-            });
+            await saveSession(req);
         }
 
         // 7. RETURN

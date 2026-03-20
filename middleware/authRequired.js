@@ -1,6 +1,9 @@
+const { sendError } = require("../utils/response");
+const { getSessionUser } = require("../utils/session");
+
 module.exports = function requireLogin(req, res, next) {
-    if (!req.session || !req.session.user) {
-        return res.status(401).json({ success: false, error: "Unauthorized" });
+    if (!getSessionUser(req)) {
+        return sendError(res, 401, "Unauthorized");
     }
 
     next();
