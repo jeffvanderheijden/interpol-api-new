@@ -4,6 +4,7 @@ const health = require("./health");
 const authRoutes = require("./auth");
 const challenges = require("./challenges/challenges");
 const groups = require("./groups/groups");
+const getLeaderboardHandler = require("./groups/_getLeaderboard");
 const messages = require("./messages/messages");
 const adminGroups = require("./admin/groups/groups");
 const adminChallenges = require("./admin/challenges/challenges");
@@ -12,6 +13,7 @@ const adminMessages = require("./admin/messages/messages");
 function registerRoutes(app) {
     app.use("/health", health);
     app.use("/api", authRoutes);
+    app.get("/api/leaderboard", getLeaderboardHandler);
 
     app.use("/api/challenges", requireLogin, challenges);
     app.use("/api/groups", requireLogin, groups);
