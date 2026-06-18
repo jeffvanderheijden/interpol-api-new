@@ -1,14 +1,17 @@
 const { pool } = require("./../../../database/database.js");
+const {
+    mergeCatalogWithDatabaseRows,
+} = require("./../../../services/challengeCatalog");
 const { sendOk, sendError } = require("./../../../utils/response");
 const { logError } = require("./../../../utils/log");
 
 module.exports = async function getHandler(req, res) {
     try {
-        // 1) Alle challenges (DB heeft 'name', frontend verwacht 'title')
+        // 1) DB-rows laden en mergen met de vaste frontend-koppelingen
         const [challengeRows] = await pool.execute(`
             SELECT 
                 id,
-                name AS title
+                name
             FROM challenges
             ORDER BY id ASC
         `);
@@ -21,7 +24,7 @@ module.exports = async function getHandler(req, res) {
             ORDER BY class ASC
         `);
 
-        const classes = classRows.map(r => ({ class: r.class }));
+        const classes = classRows.map((r) => ({ class: r.class }));
 
         // 3) Per klas: welke challenges staan open?
         //    Verwacht tabel: class_challenges(class, challenge_id, is_open)
@@ -33,20 +36,26 @@ module.exports = async function getHandler(req, res) {
         // Build lookup: perClass[challengeId][class] = boolean
         const perClassByChallenge = {};
         for (const row of ccRows) {
-            if (!perClassByChallenge[row.challenge_id]) perClassByChallenge[row.challenge_id] = {};
+            if (!perClassByChallenge[row.challenge_id]) {
+                perClassByChallenge[row.challenge_id] = {};
+            }
+
             perClassByChallenge[row.challenge_id][row.class] = row.is_open === 1;
         }
 
         // 4) Final shape voor frontend
-        const challenges = challengeRows.map(ch => {
+        const challenges = mergeCatalogWithDatabaseRows(challengeRows).map((ch) => {
             const perClass = {};
             for (const c of classes) {
                 perClass[c.class] = !!(perClassByChallenge[ch.id]?.[c.class]);
             }
+
             return {
                 id: ch.id,
                 title: ch.title,
-                perClass
+                component: ch.component,
+                route: ch.route,
+                perClass,
             };
         });
 

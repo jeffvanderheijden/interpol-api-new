@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const { pool } = require("../database/database.js");
+const { getChallengeCatalog } = require("./challengeCatalog");
 const { config } = require("../config");
 const { withTransaction } = require("../utils/db");
 const { isNonEmptyString } = require("../utils/validate");
@@ -72,9 +73,7 @@ function saveGroupPhoto(teamPhoto) {
 }
 
 async function seedGroupChallenges(connection, groupId) {
-    const [challenges] = await connection.execute(
-        "SELECT id FROM challenges WHERE is_active = 1"
-    );
+    const challenges = getChallengeCatalog();
 
     for (const challenge of challenges) {
         const keycode = crypto.randomBytes(8).toString("hex");
