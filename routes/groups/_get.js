@@ -3,9 +3,11 @@ const { sendOk, sendError } = require("./../../utils/response");
 const { parseIdParam } = require("./../../utils/parse");
 const { logError } = require("./../../utils/log");
 const {
+    ensureChallengeCatalog,
     enrichChallenge,
     getChallengeCatalog,
 } = require("./../../services/challengeCatalog");
+const { ensureScoringTables } = require("./../../services/scoring");
 const { getSessionUser } = require("./../../utils/session");
 
 module.exports = async function getHandler(req, res) {
@@ -44,6 +46,9 @@ module.exports = async function getHandler(req, res) {
     // 3. Team info ophalen
     // ---------------------------
     try {
+        await ensureChallengeCatalog(pool);
+        await ensureScoringTables(pool);
+
         const [teamRows] = await pool.execute(
             `
             SELECT 
@@ -78,6 +83,21 @@ module.exports = async function getHandler(req, res) {
             `,
             [groupId]
         );
+
+        const memberCount = members.length;
+
+        const [tutorialRows] = await pool.execute(
+            `
+            SELECT COALESCE(SUM(stp.points), 0) AS tutorial_points
+            FROM group_members gm
+            JOIN student_tutorial_progress stp
+              ON stp.student_number = gm.student_number
+            WHERE gm.group_id = ?
+            `,
+            [groupId]
+        );
+
+        const tutorialPoints = Number(tutorialRows[0]?.tutorial_points) || 0;
 
         // ---------------------------
         // 5. Openstaande challenges voor de klas ophalen
@@ -116,6 +136,29 @@ module.exports = async function getHandler(req, res) {
             [groupId]
         );
 
+        const [studentScoreRows] = await pool.execute(
+            `
+            SELECT
+                sc.challenge_id,
+                COUNT(sc.completed_at) AS completed_members,
+                COALESCE(SUM(sc.points), 0) AS earned_points
+            FROM group_members gm
+            JOIN student_challenge_scores sc
+              ON sc.student_number = gm.student_number
+            WHERE gm.group_id = ?
+            GROUP BY sc.challenge_id
+            `,
+            [groupId]
+        );
+
+        const studentScoresByChallengeId = studentScoreRows.reduce((acc, row) => {
+            acc[Number(row.challenge_id)] = {
+                completedMembers: Number(row.completed_members) || 0,
+                earnedPoints: Number(row.earned_points) || 0,
+            };
+            return acc;
+        }, {});
+
         const progressByChallengeId = challengeRows.reduce((acc, challenge) => {
             acc[Number(challenge.challenge_id)] = challenge;
             return acc;
@@ -136,8 +179,15 @@ module.exports = async function getHandler(req, res) {
             enrichChallenge({
                 challenge_id: challenge.id,
                 completed:
-                    progressByChallengeId[challenge.id]?.completed ?? 0,
-                points: progressByChallengeId[challenge.id]?.points ?? null,
+                    memberCount > 0 &&
+                    (studentScoresByChallengeId[challenge.id]?.completedMembers || 0) >= memberCount
+                        ? 1
+                        : 0,
+                completed_members:
+                    studentScoresByChallengeId[challenge.id]?.completedMembers ?? 0,
+                member_count: memberCount,
+                points:
+                    studentScoresByChallengeId[challenge.id]?.earnedPoints ?? 0,
                 point_deduction:
                     progressByChallengeId[challenge.id]?.point_deduction ?? 0,
                 is_open: openChallengeIds.has(challenge.id),
@@ -162,7 +212,12 @@ module.exports = async function getHandler(req, res) {
             }
         }
 
-        return sendOk(res, { team, members, challenges });
+        return sendOk(res, {
+            team,
+            members,
+            tutorial_points: tutorialPoints,
+            challenges,
+        });
 
     } catch (err) {
         logError("GET /api/groups/:id", err);

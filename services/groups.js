@@ -2,7 +2,10 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const { pool } = require("../database/database.js");
-const { getChallengeCatalog } = require("./challengeCatalog");
+const {
+    ensureChallengeCatalog,
+    getChallengeCatalog,
+} = require("./challengeCatalog");
 const { config } = require("../config");
 const { withTransaction } = require("../utils/db");
 const { isNonEmptyString } = require("../utils/validate");
@@ -73,6 +76,8 @@ function saveGroupPhoto(teamPhoto) {
 }
 
 async function seedGroupChallenges(connection, groupId) {
+    await ensureChallengeCatalog(connection);
+
     const challenges = getChallengeCatalog();
 
     for (const challenge of challenges) {

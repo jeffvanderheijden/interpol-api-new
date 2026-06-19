@@ -1,5 +1,8 @@
 const { pool } = require("./../../../database/database.js");
-const { hasChallengeId } = require("./../../../services/challengeCatalog");
+const {
+    ensureChallengeCatalog,
+    hasChallengeId,
+} = require("./../../../services/challengeCatalog");
 const { sendOk, sendError } = require("./../../../utils/response");
 const { logError } = require("./../../../utils/log");
 const { parseIdParam } = require("./../../../utils/parse");
@@ -23,6 +26,8 @@ module.exports = async function putHandler(req, res) {
     }
 
     try {
+        await ensureChallengeCatalog(pool);
+
         // Upsert: bestaat record al? update, anders insert
         await pool.execute(
             `

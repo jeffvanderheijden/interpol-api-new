@@ -1,5 +1,9 @@
 const { pool } = require("./../../database/database.js");
-const { getChallengeById } = require("./../../services/challengeCatalog");
+const {
+    ensureChallengeCatalog,
+    getChallengeById,
+} = require("./../../services/challengeCatalog");
+const { ensureScoringTables } = require("./../../services/scoring");
 const { getSessionUser } = require("./../../utils/session");
 const { sendOk, sendError } = require("./../../utils/response");
 const { logError } = require("./../../utils/log");
@@ -20,6 +24,9 @@ module.exports = async function getHandler(req, res) {
     }
 
     try {
+        await ensureChallengeCatalog(pool);
+        await ensureScoringTables(pool);
+
         const [groupRows] = await pool.execute(
             `
             SELECT class
@@ -46,8 +53,42 @@ module.exports = async function getHandler(req, res) {
             [className]
         );
 
+        const [scoreRows] = await pool.execute(
+            `
+            SELECT
+                challenge_id,
+                started_at,
+                completed_at,
+                duration_seconds,
+                points
+            FROM student_challenge_scores
+            WHERE student_number = ?
+            `,
+            [user.username]
+        );
+
+        const scoresByChallengeId = scoreRows.reduce((acc, row) => {
+            acc[Number(row.challenge_id)] = row;
+            return acc;
+        }, {});
+
         const challenges = challengeRows
-            .map((row) => getChallengeById(row.challenge_id))
+            .map((row) => {
+                const challenge = getChallengeById(row.challenge_id);
+                if (!challenge) {
+                    return null;
+                }
+
+                const score = scoresByChallengeId[Number(row.challenge_id)];
+                return {
+                    ...challenge,
+                    started_at: score?.started_at ?? null,
+                    completed_at: score?.completed_at ?? null,
+                    duration_seconds: score?.duration_seconds ?? null,
+                    earned_points: score?.points ?? null,
+                    completed: !!score?.completed_at,
+                };
+            })
             .filter(Boolean);
 
         return sendOk(res, { className, challenges });

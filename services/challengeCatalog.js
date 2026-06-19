@@ -4,24 +4,36 @@ const challengeCatalog = [
         title: "Creative Coding",
         component: "Creacod1",
         route: "/creative-coding",
+        description: "Creative coding challenge",
+        timeLimit: 600,
+        minimumPoints: 150,
     },
     {
         id: 3,
         title: "HTML/CSS",
         component: "HtmlCssTrainer",
         route: "/html-css",
+        description: "HTML/CSS challenge",
+        timeLimit: 0,
+        minimumPoints: 100,
     },
     {
         id: 2,
         title: "JavaScript",
         component: "JavascriptTrainer",
         route: "/javascript",
+        description: "JavaScript challenge",
+        timeLimit: 900,
+        minimumPoints: 200,
     },
     {
         id: 4,
         title: "Kijk op de wijk",
         component: "KijkOpDeWijk",
         route: "/kijk-op-de-wijk",
+        description: "Kijk op de wijk challenge",
+        timeLimit: 0,
+        minimumPoints: 100,
     },
 ];
 
@@ -70,7 +82,38 @@ function enrichChallenge(challenge = {}) {
     };
 }
 
+async function ensureChallengeCatalog(executor) {
+    for (const challenge of challengeCatalog) {
+        await executor.execute(
+            `
+            INSERT INTO challenges (
+                id,
+                name,
+                description,
+                time_limit,
+                minimum_points,
+                is_active
+            )
+            VALUES (?, ?, ?, ?, ?, 1)
+            ON DUPLICATE KEY UPDATE
+                name = VALUES(name),
+                description = COALESCE(challenges.description, VALUES(description)),
+                time_limit = VALUES(time_limit),
+                minimum_points = VALUES(minimum_points)
+            `,
+            [
+                challenge.id,
+                challenge.title,
+                challenge.description,
+                challenge.timeLimit,
+                challenge.minimumPoints,
+            ]
+        );
+    }
+}
+
 module.exports = {
+    ensureChallengeCatalog,
     enrichChallenge,
     getChallengeById,
     getChallengeCatalog,

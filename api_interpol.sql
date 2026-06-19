@@ -175,6 +175,39 @@ INSERT INTO `group_members` (`id`, `group_id`, `name`, `student_number`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Tabelstructuur voor tabel `student_challenge_scores`
+--
+
+CREATE TABLE `student_challenge_scores` (
+  `id` int(11) NOT NULL,
+  `student_number` varchar(16) NOT NULL,
+  `challenge_id` int(11) NOT NULL,
+  `started_at` datetime DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
+  `duration_seconds` int(11) DEFAULT NULL,
+  `points` int(11) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Tabelstructuur voor tabel `student_tutorial_progress`
+--
+
+CREATE TABLE `student_tutorial_progress` (
+  `id` int(11) NOT NULL,
+  `student_number` varchar(16) NOT NULL,
+  `completed_at` datetime DEFAULT NULL,
+  `points` int(11) NOT NULL DEFAULT 100,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Tabelstructuur voor tabel `messages`
 --
 
@@ -237,6 +270,21 @@ ALTER TABLE `group_members`
   ADD KEY `fk_group_members_group` (`group_id`);
 
 --
+-- Indexen voor tabel `student_challenge_scores`
+--
+ALTER TABLE `student_challenge_scores`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_student_challenge` (`student_number`,`challenge_id`),
+  ADD KEY `idx_challenge_id` (`challenge_id`);
+
+--
+-- Indexen voor tabel `student_tutorial_progress`
+--
+ALTER TABLE `student_tutorial_progress`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_student_tutorial` (`student_number`);
+
+--
 -- Indexen voor tabel `messages`
 --
 ALTER TABLE `messages`
@@ -278,6 +326,18 @@ ALTER TABLE `group_members`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
 
 --
+-- AUTO_INCREMENT voor een tabel `student_challenge_scores`
+--
+ALTER TABLE `student_challenge_scores`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT voor een tabel `student_tutorial_progress`
+--
+ALTER TABLE `student_tutorial_progress`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT voor een tabel `messages`
 --
 ALTER TABLE `messages`
@@ -305,6 +365,12 @@ ALTER TABLE `group_challenges`
 --
 ALTER TABLE `group_members`
   ADD CONSTRAINT `fk_group_members_group` FOREIGN KEY (`group_id`) REFERENCES `groups` (`id`) ON DELETE CASCADE;
+
+--
+-- Beperkingen voor tabel `student_challenge_scores`
+--
+ALTER TABLE `student_challenge_scores`
+  ADD CONSTRAINT `fk_student_challenge_scores_challenge` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

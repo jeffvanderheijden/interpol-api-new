@@ -1,9 +1,14 @@
 const { pool } = require("./../../../database/database.js");
+const { ensureChallengeCatalog } = require("./../../../services/challengeCatalog");
+const { ensureScoringTables } = require("./../../../services/scoring");
 const { sendOk, sendError } = require("./../../../utils/response");
 const { logError } = require("./../../../utils/log");
 
 module.exports = async function getHandler(req, res) {
     try {
+        await ensureChallengeCatalog(pool);
+        await ensureScoringTables(pool);
+
         //
         // 1. Haal alle basisgegevens op + bereken punten in dezelfde query
         //
@@ -16,13 +21,29 @@ module.exports = async function getHandler(req, res) {
                 g.created_at,
 
                 COALESCE((
-                    SELECT SUM(COALESCE(points,0) - COALESCE(point_deduction,0))
+                    SELECT SUM(stp.points)
+                    FROM group_members gm
+                    JOIN student_tutorial_progress stp
+                      ON stp.student_number = gm.student_number
+                    WHERE gm.group_id = g.id
+                ), 0) AS tutorial_points,
+
+                COALESCE((
+                    SELECT SUM(scs.points)
+                    FROM group_members gm
+                    JOIN student_challenge_scores scs
+                      ON scs.student_number = gm.student_number
+                    WHERE gm.group_id = g.id
+                ), 0) AS challenge_points,
+
+                COALESCE((
+                    SELECT SUM(COALESCE(point_deduction,0))
                     FROM group_challenges gc
                     WHERE gc.group_id = g.id
-                ), 0) AS total_points
+                ), 0) AS total_point_deduction
 
             FROM groups g
-            ORDER BY total_points DESC, g.id DESC
+            ORDER BY (tutorial_points + challenge_points - total_point_deduction) DESC, g.id DESC
         `);
 
         //
@@ -63,7 +84,13 @@ module.exports = async function getHandler(req, res) {
                 image_url: g.image_url,
                 created_at: g.created_at,
                 memberCount: members.length,
-                total_points: g.total_points,
+                tutorial_points: Number(g.tutorial_points) || 0,
+                challenge_points: Number(g.challenge_points) || 0,
+                total_point_deduction: Number(g.total_point_deduction) || 0,
+                total_points:
+                    (Number(g.tutorial_points) || 0) +
+                    (Number(g.challenge_points) || 0) -
+                    (Number(g.total_point_deduction) || 0),
                 members
             };
         });

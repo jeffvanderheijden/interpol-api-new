@@ -1,5 +1,6 @@
 const { pool } = require("./../../../database/database.js");
 const {
+    ensureChallengeCatalog,
     mergeCatalogWithDatabaseRows,
 } = require("./../../../services/challengeCatalog");
 const { sendOk, sendError } = require("./../../../utils/response");
@@ -7,6 +8,8 @@ const { logError } = require("./../../../utils/log");
 
 module.exports = async function getHandler(req, res) {
     try {
+        await ensureChallengeCatalog(pool);
+
         // 1) DB-rows laden en mergen met de vaste frontend-koppelingen
         const [challengeRows] = await pool.execute(`
             SELECT 
