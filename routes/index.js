@@ -6,9 +6,11 @@ const challenges = require("./challenges/challenges");
 const groups = require("./groups/groups");
 const getLeaderboardHandler = require("./groups/_getLeaderboard");
 const messages = require("./messages/messages");
+const dossiers = require("./dossiers/dossiers");
 const adminGroups = require("./admin/groups/groups");
 const adminChallenges = require("./admin/challenges/challenges");
 const adminMessages = require("./admin/messages/messages");
+const adminDossiers = require("./admin/dossiers/dossiers");
 
 function registerRoutes(app) {
     app.use("/health", health);
@@ -18,6 +20,7 @@ function registerRoutes(app) {
     app.use("/api/challenges", requireLogin, challenges);
     app.use("/api/groups", requireLogin, groups);
     app.use("/api/messages", requireLogin, messages);
+    app.use("/api/dossiers", requireLogin, dossiers);
 
     app.use("/api/admin/groups", requireLogin, requireTeacher, adminGroups);
     app.use(
@@ -31,6 +34,12 @@ function registerRoutes(app) {
         requireLogin,
         requireTeacher,
         adminMessages
+    );
+    app.use(
+        "/api/admin/dossiers",
+        requireLogin,
+        requireTeacher,
+        adminDossiers
     );
 }
 

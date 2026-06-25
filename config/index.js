@@ -11,6 +11,7 @@ const config = {
     apiBaseUrl: process.env.API_BASE_URL || "https://api.heijden.sd-lab.nl",
     sessionCookieDomain: process.env.SESSION_COOKIE_DOMAIN || ".heijden.sd-lab.nl",
     uploadsDir: path.join(PROJECT_ROOT, "uploads"),
+    uploadsDossiersDir: path.join(PROJECT_ROOT, "uploads", "dossiers"),
     uploadsMessagesDir: path.join(PROJECT_ROOT, "uploads", "messages"),
     uploadsGroupsDir: path.join(PROJECT_ROOT, "uploads", "groups"),
     corsAllowedOrigins: [
