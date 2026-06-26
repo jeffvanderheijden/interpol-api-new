@@ -33,6 +33,12 @@ const DEFAULT_DOSSIERS = [
 }));
 
 async function ensureDossiersTable(executor = pool) {
+    const [existingTables] = await executor.execute(
+        `SHOW TABLES LIKE 'dossiers'`
+    );
+
+    const tableExists = existingTables.length > 0;
+
     await executor.execute(`
         CREATE TABLE IF NOT EXISTS dossiers (
             id int(11) NOT NULL AUTO_INCREMENT,
@@ -49,6 +55,10 @@ async function ensureDossiersTable(executor = pool) {
             KEY idx_dossiers_sort (sort_order, name)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci
     `);
+
+    if (tableExists) {
+        return;
+    }
 
     for (const dossier of DEFAULT_DOSSIERS) {
         await executor.execute(
