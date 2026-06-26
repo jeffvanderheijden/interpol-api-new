@@ -17,7 +17,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage,
-    limits: { fileSize: 50 * 1024 * 1024 },
+    limits: { fileSize: config.messageUploadLimitMb * 1024 * 1024 },
     fileFilter: (_, file, cb) => {
         const ok = file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/");
         cb(ok ? null : new Error("Invalid file type"), ok);

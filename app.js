@@ -24,8 +24,13 @@ function createCorsOptions() {
 }
 
 function applyCoreMiddleware(app) {
-    app.use(express.json({ limit: "50mb" }));
-    app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+    app.use(express.json({ limit: `${config.requestBodyLimitMb}mb` }));
+    app.use(
+        express.urlencoded({
+            extended: true,
+            limit: `${config.requestBodyLimitMb}mb`,
+        })
+    );
     app.use("/uploads", express.static(config.uploadsDir));
 }
 
@@ -58,7 +63,17 @@ function applySessionMiddleware(app) {
 function applyErrorHandler(app) {
     app.use((err, req, res, next) => {
         logError("GLOBAL ERROR HANDLER", err);
+
+        if (err?.type === "entity.too.large" || err?.status === 413) {
+            res.status(413).json({
+                success: false,
+                error: "Upload is te groot voor deze server.",
+            });
+            return;
+        }
+
         res.status(500).json({
+            success: false,
             error: "Server error",
         });
     });
