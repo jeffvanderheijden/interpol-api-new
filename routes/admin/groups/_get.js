@@ -18,6 +18,8 @@ module.exports = async function getHandler(req, res) {
                 g.name,
                 g.class,
                 g.image_url,
+                g.manual_points,
+                g.manual_points_note,
                 g.created_at,
 
                 COALESCE((
@@ -43,7 +45,7 @@ module.exports = async function getHandler(req, res) {
                 ), 0) AS total_point_deduction
 
             FROM groups g
-            ORDER BY (tutorial_points + challenge_points - total_point_deduction) DESC, g.id DESC
+            ORDER BY (tutorial_points + challenge_points + COALESCE(g.manual_points, 0) - total_point_deduction) DESC, g.id DESC
         `);
 
         //
@@ -82,6 +84,8 @@ module.exports = async function getHandler(req, res) {
                 name: g.name,
                 class: g.class,
                 image_url: g.image_url,
+                manual_points: Number(g.manual_points) || 0,
+                manual_points_note: g.manual_points_note || "",
                 created_at: g.created_at,
                 memberCount: members.length,
                 tutorial_points: Number(g.tutorial_points) || 0,
@@ -90,7 +94,8 @@ module.exports = async function getHandler(req, res) {
                 total_points:
                     (Number(g.tutorial_points) || 0) +
                     (Number(g.challenge_points) || 0) -
-                    (Number(g.total_point_deduction) || 0),
+                    (Number(g.total_point_deduction) || 0) +
+                    (Number(g.manual_points) || 0),
                 members
             };
         });

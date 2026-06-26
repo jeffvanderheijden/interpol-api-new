@@ -6,11 +6,12 @@ const { sendOk, sendError } = require("./../../../utils/response");
 const { isNonEmptyString } = require("./../../../utils/validate");
 const { logError } = require("./../../../utils/log");
 const { parseIdParam } = require("./../../../utils/parse");
+const { ensureScoringTables } = require("./../../../services/scoring");
 
 module.exports = async function putHandler(req, res) {
     const id = parseIdParam(req, "id");
     if (!id) return sendError(res, 400, "Invalid id");
-    const { name, className, image_url } = req.body;
+    const { name, className, image_url, manual_points, manual_points_note } = req.body;
 
     const fields = [];
     const values = [];
@@ -32,6 +33,23 @@ module.exports = async function putHandler(req, res) {
         }
         fields.push("class = ?");
         values.push(className);
+    }
+
+    if (manual_points !== undefined) {
+        const parsedManualPoints = Number.parseInt(manual_points, 10);
+
+        if (!Number.isFinite(parsedManualPoints)) {
+            return sendError(res, 400, "Handmatige punten moeten een geldig getal zijn.");
+        }
+
+        fields.push("manual_points = ?");
+        values.push(parsedManualPoints);
+    }
+
+    if (manual_points_note !== undefined) {
+        const note = String(manual_points_note || "").trim();
+        fields.push("manual_points_note = ?");
+        values.push(note || null);
     }
 
     // ------------------------------------------
@@ -73,6 +91,7 @@ module.exports = async function putHandler(req, res) {
     }
 
     try {
+        await ensureScoringTables(pool);
         values.push(id);
 
         await pool.execute(

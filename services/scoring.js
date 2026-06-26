@@ -2,7 +2,29 @@ const { getChallengeById } = require("./challengeCatalog");
 
 const TUTORIAL_POINTS = 100;
 
+async function ensureManualGroupScoring(executor) {
+    const [manualPointsColumns] = await executor.execute(
+        `SHOW COLUMNS FROM groups LIKE 'manual_points'`
+    );
+    if (manualPointsColumns.length === 0) {
+        await executor.execute(
+            `ALTER TABLE groups ADD COLUMN manual_points INT NOT NULL DEFAULT 0`
+        );
+    }
+
+    const [manualNotesColumns] = await executor.execute(
+        `SHOW COLUMNS FROM groups LIKE 'manual_points_note'`
+    );
+    if (manualNotesColumns.length === 0) {
+        await executor.execute(
+            `ALTER TABLE groups ADD COLUMN manual_points_note TEXT DEFAULT NULL`
+        );
+    }
+}
+
 async function ensureScoringTables(executor) {
+    await ensureManualGroupScoring(executor);
+
     await executor.execute(`
         CREATE TABLE IF NOT EXISTS student_tutorial_progress (
             id INT NOT NULL AUTO_INCREMENT,
@@ -171,6 +193,7 @@ module.exports = {
     calculateChallengePoints,
     completeChallenge,
     completeTutorial,
+    ensureManualGroupScoring,
     ensureScoringTables,
     startChallenge,
 };

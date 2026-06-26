@@ -55,6 +55,8 @@ module.exports = async function getHandler(req, res) {
                 id,
                 name,
                 class,
+                manual_points,
+                manual_points_note,
                 image_url,
                 created_at
             FROM groups
@@ -98,6 +100,7 @@ module.exports = async function getHandler(req, res) {
         );
 
         const tutorialPoints = Number(tutorialRows[0]?.tutorial_points) || 0;
+        const manualPoints = Number(team.manual_points) || 0;
 
         // ---------------------------
         // 5. Openstaande challenges voor de klas ophalen
@@ -216,6 +219,8 @@ module.exports = async function getHandler(req, res) {
             team,
             members,
             tutorial_points: tutorialPoints,
+            manual_points: manualPoints,
+            manual_points_note: team.manual_points_note || "",
             challenges,
         });
 

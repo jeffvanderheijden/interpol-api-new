@@ -15,6 +15,8 @@ module.exports = async function getLeaderboardHandler(req, res) {
                 g.name,
                 g.class,
                 g.image_url,
+                g.manual_points,
+                g.manual_points_note,
                 g.created_at,
                 COALESCE((
                     SELECT COUNT(*)
@@ -41,7 +43,7 @@ module.exports = async function getLeaderboardHandler(req, res) {
                     WHERE gc.group_id = g.id
                 ), 0) AS total_point_deduction
             FROM groups g
-            ORDER BY (tutorial_points + challenge_points - total_point_deduction) DESC, g.id DESC
+            ORDER BY (tutorial_points + challenge_points + COALESCE(g.manual_points, 0) - total_point_deduction) DESC, g.id DESC
         `);
 
         const groups = groupRows.map((group, index) => ({
@@ -53,11 +55,14 @@ module.exports = async function getLeaderboardHandler(req, res) {
             member_count: Number(group.member_count) || 0,
             tutorial_points: Number(group.tutorial_points) || 0,
             challenge_points: Number(group.challenge_points) || 0,
+            manual_points: Number(group.manual_points) || 0,
+            manual_points_note: group.manual_points_note || "",
             total_point_deduction: Number(group.total_point_deduction) || 0,
             total_points:
                 (Number(group.tutorial_points) || 0) +
                 (Number(group.challenge_points) || 0) -
-                (Number(group.total_point_deduction) || 0),
+                (Number(group.total_point_deduction) || 0) +
+                (Number(group.manual_points) || 0),
             rank: index + 1,
         }));
 

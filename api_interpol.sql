@@ -85,6 +85,8 @@ CREATE TABLE `groups` (
   `id` int(11) NOT NULL,
   `name` varchar(256) NOT NULL,
   `image_url` varchar(256) DEFAULT NULL,
+  `manual_points` int(11) NOT NULL DEFAULT 0,
+  `manual_points_note` text DEFAULT NULL,
   `class` varchar(16) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
@@ -93,12 +95,12 @@ CREATE TABLE `groups` (
 -- Gegevens worden geëxporteerd voor tabel `groups`
 --
 
-INSERT INTO `groups` (`id`, `name`, `image_url`, `class`, `created_at`) VALUES
-(6, 'Test team 1', 'https://api.heijden.sd-lab.nl/uploads/groups/group_1765263699986.png', 'D1A', '2025-11-20 08:36:19'),
-(8, 'Hakkende Hackers', 'https://api.heijden.sd-lab.nl/uploads/groups/group_1765198048554.png', 'D1C', '2025-11-20 09:38:02'),
-(13, 'Test team', 'https://api.heijden.sd-lab.nl/uploads/groups/group_1765201335701.png', 'D1D', '2025-12-08 13:42:15'),
-(14, 'Test', 'https://api.heijden.sd-lab.nl/uploads/groups/group_1765883449587.png', 'D1B', '2025-12-16 11:10:49'),
-(15, 'Team met echte member', 'https://api.heijden.sd-lab.nl/uploads/groups/group_1766060845912.png', 'D1B', '2025-12-18 12:27:25');
+INSERT INTO `groups` (`id`, `name`, `image_url`, `manual_points`, `manual_points_note`, `class`, `created_at`) VALUES
+(6, 'Test team 1', 'https://api.heijden.sd-lab.nl/uploads/groups/group_1765263699986.png', 0, NULL, 'D1A', '2025-11-20 08:36:19'),
+(8, 'Hakkende Hackers', 'https://api.heijden.sd-lab.nl/uploads/groups/group_1765198048554.png', 0, NULL, 'D1C', '2025-11-20 09:38:02'),
+(13, 'Test team', 'https://api.heijden.sd-lab.nl/uploads/groups/group_1765201335701.png', 0, NULL, 'D1D', '2025-12-08 13:42:15'),
+(14, 'Test', 'https://api.heijden.sd-lab.nl/uploads/groups/group_1765883449587.png', 0, NULL, 'D1B', '2025-12-16 11:10:49'),
+(15, 'Team met echte member', 'https://api.heijden.sd-lab.nl/uploads/groups/group_1766060845912.png', 0, NULL, 'D1B', '2025-12-18 12:27:25');
 
 -- --------------------------------------------------------
 
