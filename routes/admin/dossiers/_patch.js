@@ -4,6 +4,7 @@ const { upload, getImageUrl } = require("./_upload");
 const { safeUnlinkFromImageUrl } = require("./_files");
 const { parseBooleanFlag } = require("./_shared");
 const { parseIdParam } = require("./../../../utils/parse");
+const { normalizeOptionalUrl } = require("./../../../utils/media");
 const { sendOk, sendError } = require("./../../../utils/response");
 const { logError } = require("./../../../utils/log");
 
@@ -23,7 +24,7 @@ module.exports = async function patchHandler(req, res) {
             if (!name) return sendError(res, 400, "Name is required");
 
             const [rows] = await pool.execute(
-                `SELECT image_url, is_suspect, is_eliminated FROM dossiers WHERE id = ?`,
+                `SELECT image_url, video_url, is_suspect, is_eliminated FROM dossiers WHERE id = ?`,
                 [id]
             );
 
@@ -31,6 +32,10 @@ module.exports = async function patchHandler(req, res) {
 
             const current = rows[0];
             const image_url = req.file ? getImageUrl(req.file) : current.image_url;
+            const hasVideoUrlField = Object.prototype.hasOwnProperty.call(req.body, "video_url");
+            const video_url = hasVideoUrlField
+                ? normalizeOptionalUrl(req.body.video_url)
+                : current.video_url;
             const is_suspect = parseBooleanFlag(req.body.is_suspect, current.is_suspect ? 1 : 0);
             const is_eliminated = parseBooleanFlag(
                 req.body.is_eliminated,
@@ -40,13 +45,14 @@ module.exports = async function patchHandler(req, res) {
             await pool.execute(
                 `
                 UPDATE dossiers
-                SET name = ?, description = ?, image_url = ?, is_suspect = ?, is_eliminated = ?
+                SET name = ?, description = ?, image_url = ?, video_url = ?, is_suspect = ?, is_eliminated = ?
                 WHERE id = ?
                 `,
                 [
                     name,
                     description || null,
                     image_url,
+                    video_url,
                     is_suspect,
                     is_eliminated,
                     id,

@@ -45,6 +45,7 @@ async function ensureDossiersTable(executor = pool) {
             name varchar(120) NOT NULL,
             description text DEFAULT NULL,
             image_url varchar(255) DEFAULT NULL,
+            video_url varchar(255) DEFAULT NULL,
             is_suspect tinyint(1) NOT NULL DEFAULT 1,
             is_eliminated tinyint(1) NOT NULL DEFAULT 0,
             sort_order int(11) NOT NULL DEFAULT 0,
@@ -55,6 +56,16 @@ async function ensureDossiersTable(executor = pool) {
             KEY idx_dossiers_sort (sort_order, name)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci
     `);
+
+    const [videoUrlColumns] = await executor.execute(
+        `SHOW COLUMNS FROM dossiers LIKE 'video_url'`
+    );
+
+    if (videoUrlColumns.length === 0) {
+        await executor.execute(
+            `ALTER TABLE dossiers ADD COLUMN video_url varchar(255) DEFAULT NULL AFTER image_url`
+        );
+    }
 
     if (tableExists) {
         return;

@@ -235,6 +235,7 @@ CREATE TABLE `dossiers` (
   `name` varchar(120) NOT NULL,
   `description` text DEFAULT NULL,
   `image_url` varchar(255) DEFAULT NULL,
+  `video_url` varchar(255) DEFAULT NULL,
   `is_suspect` tinyint(1) NOT NULL DEFAULT 1,
   `is_eliminated` tinyint(1) NOT NULL DEFAULT 0,
   `sort_order` int(11) NOT NULL DEFAULT 0,
@@ -246,29 +247,29 @@ CREATE TABLE `dossiers` (
 -- Gegevens worden geëxporteerd voor tabel `dossiers`
 --
 
-INSERT INTO `dossiers` (`id`, `name`, `description`, `image_url`, `is_suspect`, `is_eliminated`, `sort_order`, `created_at`, `updated_at`) VALUES
-(1, 'Abdeslam Hakil', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(2, 'Amy Marks', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(3, 'Arthur Steijlen', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(4, 'Brian Hokke', NULL, NULL, 0, 0, 0, '2026-06-25 10:00:00', NULL),
-(5, 'Emily Kornaat', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(6, 'Floris van Dijk', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(7, 'Henk Bijlsma', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(8, 'Hilda Uitvlught', NULL, NULL, 0, 0, 0, '2026-06-25 10:00:00', NULL),
-(9, 'Jeff van der Heijden', NULL, NULL, 0, 0, 0, '2026-06-25 10:00:00', NULL),
-(10, 'Judith Pouwelse', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(11, 'Maarten Tacoma', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(12, 'Melvin Loos', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(13, 'Meredith Wongsosetro', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(14, 'Michael Fernandes', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(15, 'Oskar Maan', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(16, 'Ron Segaar', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(17, 'Ruben Baas', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(18, 'Saskia Heijnsdijk', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(19, 'Soraya Goldewijk', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(20, 'Ward Klomp', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(21, 'Wouter Visser', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
-(22, 'Yorik Geurts', NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL);
+INSERT INTO `dossiers` (`id`, `name`, `description`, `image_url`, `video_url`, `is_suspect`, `is_eliminated`, `sort_order`, `created_at`, `updated_at`) VALUES
+(1, 'Abdeslam Hakil', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(2, 'Amy Marks', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(3, 'Arthur Steijlen', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(4, 'Brian Hokke', NULL, NULL, NULL, 0, 0, 0, '2026-06-25 10:00:00', NULL),
+(5, 'Emily Kornaat', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(6, 'Floris van Dijk', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(7, 'Henk Bijlsma', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(8, 'Hilda Uitvlught', NULL, NULL, NULL, 0, 0, 0, '2026-06-25 10:00:00', NULL),
+(9, 'Jeff van der Heijden', NULL, NULL, NULL, 0, 0, 0, '2026-06-25 10:00:00', NULL),
+(10, 'Judith Pouwelse', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(11, 'Maarten Tacoma', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(12, 'Melvin Loos', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(13, 'Meredith Wongsosetro', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(14, 'Michael Fernandes', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(15, 'Oskar Maan', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(16, 'Ron Segaar', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(17, 'Ruben Baas', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(18, 'Saskia Heijnsdijk', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(19, 'Soraya Goldewijk', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(20, 'Ward Klomp', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(21, 'Wouter Visser', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL),
+(22, 'Yorik Geurts', NULL, NULL, NULL, 1, 0, 0, '2026-06-25 10:00:00', NULL);
 
 --
 -- Gegevens worden geëxporteerd voor tabel `messages`

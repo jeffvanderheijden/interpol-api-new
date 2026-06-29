@@ -2,6 +2,7 @@ const { pool } = require("./../../../database/database.js");
 const { ensureDossiersTable } = require("./../../../services/dossiers");
 const { upload, getImageUrl } = require("./_upload");
 const { parseBooleanFlag } = require("./_shared");
+const { normalizeOptionalUrl } = require("./../../../utils/media");
 const { sendOk, sendError } = require("./../../../utils/response");
 const { logError } = require("./../../../utils/log");
 
@@ -17,18 +18,20 @@ module.exports = async function postHandler(req, res) {
             const is_suspect = parseBooleanFlag(req.body.is_suspect, 1);
             const is_eliminated = parseBooleanFlag(req.body.is_eliminated, 0);
             const image_url = getImageUrl(req.file);
+            const video_url = normalizeOptionalUrl(req.body.video_url);
 
             if (!name) return sendError(res, 400, "Name is required");
 
             await pool.execute(
                 `
-                INSERT INTO dossiers (name, description, image_url, is_suspect, is_eliminated)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO dossiers (name, description, image_url, video_url, is_suspect, is_eliminated)
+                VALUES (?, ?, ?, ?, ?, ?)
                 `,
                 [
                     name,
                     description || null,
                     image_url,
+                    video_url,
                     is_suspect,
                     is_eliminated,
                 ]

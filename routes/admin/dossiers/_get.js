@@ -14,6 +14,7 @@ module.exports = async function getHandler(req, res) {
                 name,
                 description,
                 image_url,
+                video_url,
                 is_suspect,
                 is_eliminated,
                 sort_order,
