@@ -10,9 +10,7 @@ const { sendOk, sendError } = require("./../../../utils/response");
 const { logError } = require("./../../../utils/log");
 
 module.exports = async function postHandler(req, res) {
-    upload.single("media")(req, res, async (err) => {
-        if (err) return sendError(res, 400, err.message || "Upload failed");
-
+    const run = async () => {
         try {
             const title = String(req.body.title || "").trim();
             const body = String(req.body.body || "").trim();
@@ -63,5 +61,15 @@ module.exports = async function postHandler(req, res) {
             logError("POST /api/admin/messages", e);
             return sendError(res, 500, "Server error");
         }
-    });
+    };
+
+    const contentType = String(req.headers["content-type"] || "");
+    if (contentType.includes("multipart/form-data")) {
+        return upload.single("media")(req, res, (err) => {
+            if (err) return sendError(res, 400, err.message || "Upload failed");
+            return run();
+        });
+    }
+
+    return run();
 };

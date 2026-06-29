@@ -12,9 +12,7 @@ module.exports = async function patchHandler(req, res) {
     const id = parseIdParam(req, "id");
     if (!id) return sendError(res, 400, "Invalid id");
 
-    upload.single("image")(req, res, async (err) => {
-        if (err) return sendError(res, 400, err.message || "Upload failed");
-
+    const run = async () => {
         try {
             await ensureDossiersTable(pool);
 
@@ -72,5 +70,15 @@ module.exports = async function patchHandler(req, res) {
             logError("PATCH /api/admin/dossiers/:id", e);
             return sendError(res, 500, "Server error");
         }
-    });
+    };
+
+    const contentType = String(req.headers["content-type"] || "");
+    if (contentType.includes("multipart/form-data")) {
+        return upload.single("image")(req, res, (err) => {
+            if (err) return sendError(res, 400, err.message || "Upload failed");
+            return run();
+        });
+    }
+
+    return run();
 };
